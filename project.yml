@@ -1,0 +1,34 @@
+name: Lantern
+options:
+  bundleIdPrefix: com.bolenton
+  deploymentTarget:
+    iOS: "18.0"
+packages:
+  StoryEngine:
+    path: Packages/StoryEngine
+targets:
+  Lantern:
+    type: application
+    platform: iOS
+    sources:
+      - App
+      - path: StoryPacks
+        type: folder
+        buildPhase: resources
+    dependencies:
+      - package: StoryEngine
+    info:
+      path: App/Info.plist
+      properties:
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        NSMicrophoneUsageDescription: "Lantern listens so you can talk to your fox companion."
+        NSSpeechRecognitionUsageDescription: "Lantern turns your voice into questions for your fox companion."
+        UIBackgroundModes:
+          - audio
+    settings:
+      base:
+        SWIFT_VERSION: "5.10"
+        TARGETED_DEVICE_FAMILY: "1,2"
