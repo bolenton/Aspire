@@ -15,6 +15,10 @@ targets:
       - path: StoryPacks
         type: folder
         buildPhase: resources
+      - path: Assets
+        type: folder
+        buildPhase: resources
+        optional: true
     dependencies:
       - package: StoryEngine
     info:

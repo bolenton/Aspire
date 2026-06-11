@@ -1,47 +1,88 @@
 # Lantern 🏮
 
-An adaptive, audio-first story adventure for visually impaired kids — built native for iOS, designed so that **sound is the world and vision confirms it**.
+An adaptive, audio-first story adventure for visually impaired kids — built
+native for iOS, designed so that **sound is the world and vision confirms it**.
 
-Built for one brilliant 9-year-old, and shipped in her honor for every kid like her.
+Built for one brilliant 9-year-old, and shipped in her honor for every kid
+like her.
+
+## How it plays
+
+She chooses a companion — **Ember the fox**, **Petal the butterfly**, or
+**Clover the bunny** — by listening to each one say hello. Her companion
+narrates the world, answers spoken questions (tap-to-talk), remembers her
+choices, and guides her through regions of a gentle story where conflict is
+resolved with solfège song-spells, never violence.
+
+The companion choice matters, Pokémon-style: every line of dialogue is
+flavored per companion, each has exclusive side quests, and each has a unique
+**perception ability** that reveals different secrets in the same scenes —
+Ember's Fox Nose smells buried things, Petal's Sky Wings spot what's up high,
+Clover's Bunny Ears hear the quietest sounds (and genuinely extend how far she
+can hear). Finishing the story with one friend leaves two more playthroughs of
+new content waiting.
+
+**Freeze and explain**: hold two fingers anywhere, on any screen, and the
+world gently pauses while the companion explains exactly where she is and
+what's around — deterministic, instant, offline.
+
+**Calibration**: a spoken first-launch wizard sets text size, contrast
+polarity, narration speed, and hint aggressiveness per child; adaptive
+difficulty then moves relative to that baseline and never drops support
+below it. Re-tunable behind a parent gate.
 
 ## Design pillars
 
-1. **Sound is the primary sense.** Every object in the world is a spatial sound source (Apple PHASE engine). With AirPods, head tracking keeps sounds anchored in the world as she turns her head. Visuals are big, glowing, high-contrast shapes that *confirm* what her ears already told her.
-2. **A living companion, not a narrator.** The fox explains objectives, answers spoken questions, reacts to mistakes, and remembers her choices — powered by a swappable AI brain that is *grounded in authored story canon* and can never invent plot.
-3. **The game never requires a model.** A deterministic scripted brain handles core questions offline. Every AI provider is strictly an upgrade.
-4. **Adaptive difficulty by legible rules.** Struggle → stronger audio cues, brighter glow, more explicit hints. Success streaks → more independence, harder puzzles. Deterministic rules decide *what* support to give; AI only phrases hints in character.
-5. **Memory creates attachment.** Choices, favorites, and outcomes persist. Weeks later: *"Last time you helped the fisherman."*
-6. **Reading optional but encouraged.** The narrator speaks everything; giant text displays simultaneously with word-by-word highlighting; tap any word to hear it again.
-7. **A safe world.** No deaths, no game overs, no punishment loops. Curiosity and exploration are always rewarded.
-8. **Regions, not levels.** Whispering Forest → Crystal Caves → Sky Islands → City of Lanterns. Each region introduces exactly one new mechanic.
-9. **Music as magic.** Characters sing short solfège phrases; she sings or taps them back to cast spells. Complexity ramps gently.
-10. **One engine, many stories.** All content lives in data-driven story packs (JSON). Forest Journey first; Space Explorer, Pirate Adventure, folktales, and community packs on the same engine.
+1. **Sound is the primary sense.** Every object is a spatial audio source
+   (Apple PHASE). Visuals are big, glowing, high-contrast shapes that confirm
+   what her ears already told her.
+2. **A living companion, not a narrator.** The AI brain receives a live
+   **WorldSnapshot** — everything she can currently perceive, with directions
+   ("the river, to your right, about 12 big steps away"), locked exits and
+   why, quest state, recent events — so spoken questions get situationally
+   true answers. It is grounded in authored canon and can never invent plot.
+3. **The game never requires a model.** A deterministic scripted brain
+   answers from the same snapshot, offline. Every AI provider is strictly an
+   upgrade, with seamless fallback.
+4. **Adaptive difficulty by legible rules.** Struggle → stronger cues,
+   brighter glow, more explicit hints. Deterministic rules decide *what* help
+   to give; AI may only phrase it.
+5. **Memory creates attachment.** Choices and favorites persist per
+   playthrough and across them. Weeks later: "Last time you helped the
+   fisherman."
+6. **Reading optional but encouraged.** Giant text highlights word-by-word as
+   the narrator speaks; tap any word to hear it again.
+7. **A safe world.** No deaths, no game overs, no punishment loops.
+8. **Regions, not levels.** Each region introduces exactly one new mechanic.
+9. **One engine, many stories.** All content is data-driven JSON story packs;
+   companions are extensible the same way — adding a fourth is a content
+   task, not an engine change.
 
 ## Architecture
 
 ```
-Packages/StoryEngine/        Platform-independent Swift (testable on Linux)
-  StoryPack                  Codable content model: regions, scenes, entities,
-                             quests, dialogue, song-spells, hint ladders
-  GameProgress               Quest state, flags, inventory
-  MemoryJournal              Persistent memories the companion recalls
-  DifficultyDirector         Telemetry in → support levels out (pure rules)
-  Companion/
-    CompanionBrain           Protocol + grounded prompt builder (safety contract)
-    ScriptedBrain            Offline deterministic fallback
-    OpenAICompatibleBrain    Any OpenAI-compatible endpoint: Ollama, LM Studio,
-                             llama.cpp server, cloud gateways
-App/                         iOS app layer (Apple frameworks only)
-  SwiftUI + RealityKit       Big glowing high-contrast world
-  PHASE                      3D positional audio, head-tracked with AirPods
-  AVSpeechSynthesizer        Narration with per-word text highlighting
-  Speech                     On-device recognition — talk to the fox
-StoryPacks/ForestJourney/    First story pack (Whispering Forest)
+Packages/StoryEngine/        Platform-independent Swift (tested on Linux CI)
+  StoryPack + FlavoredText   Content model; every spoken line per-companion
+  CompanionRoster            Personas, quirks, voices, abilities, templates
+  Scene.activeEntities       Companion/ability/flag gating — single source
+  WorldSnapshot + Builder    Real-time perception model (directions, kid
+                             distances, locked reasons, ability findings)
+  SituationReport            Freeze-and-explain deterministic readout
+  CompanionBrain             PromptBuilder safety contract + providers:
+                             ScriptedBrain (offline) / OpenAICompatibleBrain
+                             (Ollama, LM Studio, llama.cpp, gateways)
+  DifficultyDirector         Calibrated baseline + legible adaptive rules
+  SaveSlot / PlayerVault     Per-companion playthroughs, shared favorites
+App/                         iOS app layer (SwiftUI + Apple frameworks)
+  PHASE spatial audio        Looping 3D sources, listener follows her pose
+  Narrator                   AVSpeech + word-by-word highlight + tap-a-word
+  SpeechListener             Tap-to-talk, on-device recognition
+  Calibration wizard         Spoken setup; parent gate for re-tuning + AI
+  Freeze gesture             Window-level two-finger hold, every screen
+StoryPacks/                  roster.json + ForestJourney chapter 1
+Assets/Audio/MANIFEST.md     Every audio cue with production status
+ASSETS.md                    License ledger — nothing ships unledgered
 ```
-
-Planned app-layer brains (same `CompanionBrain` protocol): Apple's on-device
-Foundation Model (iOS 26, Apple Intelligence hardware) as the zero-setup
-default, and a bundled small Gemma running locally for older devices.
 
 ## Building & installing on the iPad (Mac required)
 
@@ -51,9 +92,19 @@ xcodegen                     # generates Lantern.xcodeproj from project.yml
 open Lantern.xcodeproj       # set your signing team, plug in the iPad, Run ▶
 ```
 
-Note: with a free Apple ID the install expires after 7 days and needs a re-run
-from Xcode. A paid developer account ($99/yr — needed for TestFlight/App Store
-anyway) extends that to a year.
+Notes:
+- With a free Apple ID the install expires after 7 days; a paid developer
+  account ($99/yr, needed for TestFlight/App Store anyway) extends it to a year.
+- `git lfs install` once before adding binary assets (see .gitattributes).
+- The game runs fully without audio assets (sources are skipped until files
+  land per `Assets/Audio/MANIFEST.md`) and without any AI configured.
+
+### Connecting the companion AI (optional, parent settings)
+
+Run Ollama or LM Studio on a Mac on the same Wi-Fi, then in
+Grown-ups → Companion AI set e.g. endpoint `http://your-mac.local:11434/v1`
+and model `gemma3:4b`. Any OpenAI-compatible endpoint works. If it's ever
+unreachable, the built-in scripted companion takes over mid-conversation.
 
 ## Developing the engine (any OS)
 
@@ -66,12 +117,16 @@ runner for every push.
 
 ## Roadmap
 
-- [x] Engine core: content model, progress, memory, difficulty, companion brains
-- [ ] Chapter 1 playable: Fox Hollow scene, spatial audio, touch movement
-- [ ] Narration with word highlighting + tap-to-replay
-- [ ] Voice input — ask the fox questions out loud
-- [ ] Song-spells (solfège call-and-response)
-- [ ] Apple Foundation Model + bundled Gemma brains
-- [ ] AirPods head tracking
-- [ ] TestFlight beta with the AppleVis / audiogames.net communities
-- [ ] Free App Store release, Kids category
+- [x] Engine: content model, gating, snapshots, brains, difficulty, vault
+- [x] Companion roster: Ember / Petal / Clover with abilities + templates
+- [x] Forest Journey chapter 1 (Fox Hollow) with per-companion secrets
+- [x] App: calibration wizard, picker ceremony, audio-first game loop,
+      tap-to-talk, freeze-and-explain, parent gate
+- [ ] Curated audio pass (see Assets/Audio/MANIFEST.md) — first playtest!
+- [ ] Solfège notes as real tones; song-spell length scales with challenge
+- [ ] RealityKit glowing world (visual beauty milestone, post-playtest)
+- [ ] AirPods head tracking (CMHeadphoneMotionManager → PHASE listener)
+- [ ] Apple Foundation Model + bundled Gemma brains behind the same protocol
+- [ ] More Whispering Forest scenes; Crystal Caves region (new mechanic)
+- [ ] TestFlight beta with AppleVis / audiogames.net communities
+- [ ] Free App Store release, Kids category — in her honor
