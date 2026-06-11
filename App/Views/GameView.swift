@@ -14,6 +14,8 @@ struct GameView: View {
         let theme = appModel.theme
         ZStack {
             theme.background.ignoresSafeArea()
+            WorldView(model: model)
+                .ignoresSafeArea()
 
             VStack(spacing: 16) {
                 header(theme)
@@ -21,8 +23,12 @@ struct GameView: View {
                 ScrollView {
                     NarrationTextView(narrator: model.narrator, theme: theme)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 8)
+                        .padding(14)
                 }
+                .background(
+                    RoundedRectangle(cornerRadius: 22)
+                        .fill(theme.background.opacity(0.82))
+                )
                 .frame(maxHeight: .infinity)
 
                 if let nearby = model.nearbyEntity {
@@ -50,8 +56,7 @@ struct GameView: View {
         }
         .onDisappear {
             appModel.activeGame = nil
-            model.audio.removeAllSources()
-            model.persist()
+            model.end()
         }
     }
 
@@ -104,6 +109,12 @@ struct GameView: View {
     }
 
     private func controls(_ theme: Theme) -> some View {
+        controlsRow(theme)
+            .padding(12)
+            .background(RoundedRectangle(cornerRadius: 26).fill(theme.background.opacity(0.82)))
+    }
+
+    private func controlsRow(_ theme: Theme) -> some View {
         HStack(spacing: 18) {
             controlButton(theme, system: "arrow.turn.up.left", label: "Turn left") {
                 model.turn(degrees: -45)

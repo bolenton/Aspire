@@ -30,6 +30,7 @@ targets:
           - UIInterfaceOrientationLandscapeRight
         NSMicrophoneUsageDescription: "Lantern listens so you can talk to your fox companion."
         NSSpeechRecognitionUsageDescription: "Lantern turns your voice into questions for your fox companion."
+        NSMotionUsageDescription: "Lantern uses your headphones' motion sensors so sounds stay anchored in the world when you turn your head."
         UIBackgroundModes:
           - audio
     settings:

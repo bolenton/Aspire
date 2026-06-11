@@ -17,11 +17,17 @@ final class GameViewModel: ObservableObject {
     @Published var targetNotes: [SolfegeNote] = []
     @Published private(set) var events = EventLog()
     @Published var companionReply: String?
+    /// Head-tracking yaw offset (AirPods) on top of the body heading.
+    @Published var headYawDegrees: Double = 0
+    /// Bumped whenever the visible world changes (collects, unlocks) so the
+    /// 3D view knows to rebuild.
+    @Published private(set) var worldRevision = 0
 
     let pack: StoryPack
     let companion: Companion
     let childName: String
     let audio = SpatialAudioEngine()
+    let headTracker = HeadTracker()
     let narrator: Narrator
     private let brain: any CompanionBrain
     private let saveSlot: (SaveSlot) -> Void
@@ -64,6 +70,10 @@ final class GameViewModel: ObservableObject {
 
     func begin() {
         audio.start()
+        headTracker.start { [weak self] yaw in
+            self?.headYawDegrees = yaw
+            self?.pushListener()
+        }
         if let scene {
             audio.loadScene(scene, resolved: resolvedEntities)
             audio.updateListener(pose: pose)
@@ -85,13 +95,29 @@ final class GameViewModel: ObservableObject {
         stepStartedAt = Date()
     }
 
+    func end() {
+        headTracker.stop()
+        audio.removeAllSources()
+        persist()
+    }
+
+    /// What she perceives: body heading plus head turn — her ears lead.
+    private var perceptionPose: PlayerPose {
+        PlayerPose(position: pose.position,
+                   headingDegrees: pose.headingDegrees + headYawDegrees)
+    }
+
+    private func pushListener() {
+        audio.updateListener(pose: perceptionPose)
+    }
+
     func snapshot() -> WorldSnapshot {
         guard let scene else {
             return WorldSnapshot(tick: tick, sceneID: "", sceneName: "Lantern",
                                  sceneDescription: "", pose: pose, perceived: [])
         }
         return SnapshotBuilder.build(pack: pack, companion: companion, scene: scene,
-                                     pose: pose, progress: slot.progress,
+                                     pose: perceptionPose, progress: slot.progress,
                                      events: events, support: slot.difficulty.support,
                                      tick: tick)
     }
@@ -115,13 +141,13 @@ final class GameViewModel: ObservableObject {
         position.x = min(max(position.x, -40), 40)
         position.z = min(max(position.z, -40), 40)
         pose.position = position
-        audio.updateListener(pose: pose)
+        pushListener()
         checkArrival()
     }
 
     func turn(degrees: Double) {
         pose.headingDegrees = (pose.headingDegrees + degrees).truncatingRemainder(dividingBy: 360)
-        audio.updateListener(pose: pose)
+        pushListener()
     }
 
     /// The nearest interactable thing, for the big context-sensitive button.
@@ -290,6 +316,7 @@ final class GameViewModel: ObservableObject {
         if completed.goal == .collect {
             audio.removeSource(id: targetID)
         }
+        worldRevision += 1
         recordTelemetry(kind: kind, succeeded: true)
 
         var speech = completed.celebration.resolved(for: companion.id)

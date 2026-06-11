@@ -127,8 +127,13 @@ runner for every push.
       file-by-file per Assets/Audio/MANIFEST.md
 - [x] Solfège notes as real tones; song-spell length scales with challenge
       (listen-first melody, gentle replay on misses)
-- [ ] RealityKit glowing world (visual beauty milestone, post-playtest)
-- [ ] AirPods head tracking (CMHeadphoneMotionManager → PHASE listener)
+- [x] RealityKit glowing world: procedural emissive shapes per VisualSpec,
+      breathing halo on the quest target (scaled by adaptive glow boost),
+      drifting fireflies, first-person camera gliding with her pose —
+      commissioned models later swap into the same layout
+- [x] AirPods head tracking: head yaw offsets the PHASE listener AND the
+      companion's perception (directions match where her head points);
+      camera stays on body heading so visuals don't lurch
 - [ ] Apple Foundation Model + bundled Gemma brains behind the same protocol
 - [ ] More Whispering Forest scenes; Crystal Caves region (new mechanic)
 - [ ] TestFlight beta with AppleVis / audiogames.net communities
