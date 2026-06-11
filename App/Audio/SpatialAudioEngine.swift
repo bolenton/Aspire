@@ -40,7 +40,7 @@ final class SpatialAudioEngine {
 
     /// Loads a scene: clears old sources, adds one looping source per
     /// resolved, audible-capable entity.
-    func loadScene(_ scene: Scene, resolved: [ResolvedEntity]) {
+    func loadScene(_ scene: StoryEngine.Scene, resolved: [ResolvedEntity]) {
         removeAllSources()
         for item in resolved {
             guard !item.isAnonymousTease, let sound = item.entity.sound else { continue }

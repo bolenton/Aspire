@@ -45,7 +45,7 @@ final class GameViewModel: ObservableObject {
         self.saveSlot = saveSlot
     }
 
-    var scene: Scene? {
+    var scene: StoryEngine.Scene? {
         pack.scene(id: slot.progress.currentSceneID)
     }
 

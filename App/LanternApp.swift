@@ -11,7 +11,7 @@ struct LanternApp: App {
         try? AVAudioSession.sharedInstance().setActive(true)
     }
 
-    var body: some Scene {
+    var body: some SwiftUI.Scene {
         WindowGroup {
             RootView()
                 .environmentObject(appModel)
