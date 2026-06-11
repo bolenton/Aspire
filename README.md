@@ -122,8 +122,11 @@ runner for every push.
 - [x] Forest Journey chapter 1 (Fox Hollow) with per-companion secrets
 - [x] App: calibration wizard, picker ceremony, audio-first game loop,
       tap-to-talk, freeze-and-explain, parent gate
-- [ ] Curated audio pass (see Assets/Audio/MANIFEST.md) — first playtest!
-- [ ] Solfège notes as real tones; song-spell length scales with challenge
+- [x] Placeholder audio pass — all 36 cues procedurally synthesized
+      (`Tools/generate_placeholder_audio.py`); swap in curated/final sounds
+      file-by-file per Assets/Audio/MANIFEST.md
+- [x] Solfège notes as real tones; song-spell length scales with challenge
+      (listen-first melody, gentle replay on misses)
 - [ ] RealityKit glowing world (visual beauty milestone, post-playtest)
 - [ ] AirPods head tracking (CMHeadphoneMotionManager → PHASE listener)
 - [ ] Apple Foundation Model + bundled Gemma brains behind the same protocol

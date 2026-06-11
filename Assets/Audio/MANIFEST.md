@@ -1,54 +1,58 @@
 # Audio Cue Manifest
 
 Every sound the current chapters reference, with production status.
-Status: **missing** → **placeholder** (curated, shippable for playtests) → **final**.
+Status: **missing** → **placeholder** (shippable for playtests) → **final**.
 
-Delivery format: mono CAF (AAC or LPCM), loudness-normalized via
-`Tools/normalize_audio.sh`, named exactly as below, placed in this folder.
-Spatial sources MUST be mono — PHASE positions them in 3D; stereo files
-break localization. Search terms are starting points for Freesound/Sonniss.
+All current files are **placeholder**: procedurally synthesized originals
+from `Tools/generate_placeholder_audio.py` (mono 16-bit WAV, 32 kHz,
+loop-crossfaded). Regenerate any of them by editing that script and
+re-running it. To replace one with a curated/recorded sound: drop in a mono
+file with the same name (CAF/WAV — `Tools/normalize_audio.sh` converts and
+loudness-normalizes), flip its status to **final**, and add its row to
+`ASSETS.md`. Spatial sources MUST be mono — PHASE positions them in 3D;
+stereo files break localization.
 
 ## Scene: Fox Hollow (ForestJourney)
 
-| File | Status | Description | Search terms |
+| File | Status | Description | Search terms for final pass |
 |---|---|---|---|
-| wind_leaves_loop.caf | missing | Gentle wind through leaves, seamless loop | "wind leaves rustle loop" |
-| crickets_loop.caf | missing | Soft night crickets, seamless loop | "crickets ambience loop" |
-| companion_call.caf | missing | Friendly animal call, loopable with gaps | per-companion variants later |
-| river_loop.caf | missing | Medium river flow, seamless loop | "river stream flowing loop" |
-| oak_creak_loop.caf | missing | Slow deep wood creaks, sparse loop | "tree creak wood groan" |
-| acorn_chime_loop.caf | missing | Tiny silver bell chime, gentle loop | "small bell chime twinkle" |
-| bridge_creak_loop.caf | missing | Old wood bridge creaking over water | "wooden bridge creak" |
-| chicks_quiet_loop.caf | missing | Very quiet sleepy bird chirps | "baby birds nest quiet" |
-| stream_quiet_loop.caf | missing | Tiny underground water trickle | "water trickle quiet" |
+| wind_leaves_loop.wav | placeholder | Gentle wind through leaves, seamless loop | "wind leaves rustle loop" |
+| crickets_loop.wav | placeholder | Soft night crickets, seamless loop | "crickets ambience loop" |
+| companion_call.wav | placeholder | Friendly two-note call, gap for looping | per-companion variants later |
+| river_loop.wav | placeholder | Medium river flow, seamless loop | "river stream flowing loop" |
+| oak_creak_loop.wav | placeholder | Slow deep wood creaks, sparse loop | "tree creak wood groan" |
+| acorn_chime_loop.wav | placeholder | Tiny silver bell chime, gentle loop | "small bell chime twinkle" |
+| bridge_creak_loop.wav | placeholder | Old wood bridge creaking over water | "wooden bridge creak" |
+| chicks_quiet_loop.wav | placeholder | Very quiet sleepy bird chirps | "baby birds nest quiet" |
+| stream_quiet_loop.wav | placeholder | Tiny underground water trickle | "water trickle quiet" |
 
 ## Companions (roster)
 
 | File | Status | Description |
 |---|---|---|
-| ember_greeting.caf | missing | Bright fox yip-yip |
-| ember_celebrate.caf | missing | Excited fox yips |
-| ember_sniffing.caf | missing | Fox sniffing |
-| ember_padding.caf | missing | Soft paw steps loop |
-| ember_hum.caf | missing | Curious little hum |
-| petal_greeting.caf | missing | Soft flutter + sparkle |
-| petal_celebrate.caf | missing | Joyful flutter swirl |
-| petal_flutter_up.caf | missing | Wings fluttering upward |
-| petal_wings.caf | missing | Gentle wingbeat loop |
-| petal_chime.caf | missing | Dreamy soft chime |
-| clover_greeting.caf | missing | Shy bunny snuffle |
-| clover_thump.caf | missing | Happy foot thumps |
-| clover_ear_wiggle.caf | missing | Quick soft rustle |
-| clover_hops.caf | missing | Soft hops loop |
-| clover_soft_hum.caf | missing | Tiny gentle hum |
+| ember_greeting.wav | placeholder | Bright fox yip-yip |
+| ember_celebrate.wav | placeholder | Excited ascending yips |
+| ember_sniffing.wav | placeholder | Rhythmic sniffs |
+| ember_padding.wav | placeholder | Soft paw-step trot loop |
+| ember_hum.wav | placeholder | Curious little hum |
+| petal_greeting.wav | placeholder | Sparkly chimes + wing flutter |
+| petal_celebrate.wav | placeholder | Ascending chime run |
+| petal_flutter_up.wav | placeholder | Wings fluttering upward |
+| petal_wings.wav | placeholder | Gentle wingbeat loop |
+| petal_chime.wav | placeholder | Dreamy soft chime |
+| clover_greeting.wav | placeholder | Shy snuffles + tiny squeak |
+| clover_thump.wav | placeholder | Happy double foot thump |
+| clover_ear_wiggle.wav | placeholder | Quick soft rustles |
+| clover_hops.wav | placeholder | Soft hop pairs loop |
+| clover_soft_hum.wav | placeholder | Tiny gentle hum |
 
 ## UI / feedback
 
 | File | Status | Description |
 |---|---|---|
-| earcon_listen_start.caf | missing | Tap-to-talk: ears open |
-| earcon_listen_stop.caf | missing | Tap-to-talk: done listening |
-| earcon_freeze.caf | missing | Freeze-and-explain engaged |
-| celebrate_step.caf | missing | Quest step complete sparkle |
-| celebrate_quest.caf | missing | Quest complete fanfare (short, warm) |
-| note_do.caf … note_ti.caf | missing | Solfège notes for song-spells (warm instrument, 7 files) |
+| earcon_listen_start.wav | placeholder | Tap-to-talk: ears open (rising) |
+| earcon_listen_stop.wav | placeholder | Tap-to-talk: done (falling) |
+| earcon_freeze.wav | placeholder | Freeze-and-explain soft gong |
+| celebrate_step.wav | placeholder | Quest step sparkle |
+| celebrate_quest.wav | placeholder | Warm quest-complete fanfare |
+| note_do.wav … note_ti.wav | placeholder | Solfège tones C4–B4, warm harmonics (7 files) |

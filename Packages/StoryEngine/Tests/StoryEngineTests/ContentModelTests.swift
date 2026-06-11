@@ -67,6 +67,22 @@ final class StoryPackTests: XCTestCase {
     }
 }
 
+final class SongSpellTests: XCTestCase {
+    func testNotesScaleWithChallenge() {
+        let spell = SongSpell(id: "s", name: "Song", notes: [.do, .re, .mi, .fa, .sol])
+        XCTAssertEqual(spell.notes(forChallenge: 1), [.do, .re, .mi])
+        XCTAssertEqual(spell.notes(forChallenge: 2), [.do, .re, .mi, .fa])
+        XCTAssertEqual(spell.notes(forChallenge: 3), [.do, .re, .mi, .fa, .sol])
+        XCTAssertEqual(spell.notes(forChallenge: 5), [.do, .re, .mi, .fa, .sol],
+                       "clamps to the authored melody")
+    }
+
+    func testShortSongIsNeverExtended() {
+        let spell = SongSpell(id: "s", name: "Tiny", notes: [.do, .re])
+        XCTAssertEqual(spell.notes(forChallenge: 4), [.do, .re])
+    }
+}
+
 final class GatingTests: XCTestCase {
     func testCompanionGatedQuestFiltering() {
         let pack = Fixtures.pack()

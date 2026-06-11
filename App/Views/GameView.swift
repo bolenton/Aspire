@@ -119,9 +119,11 @@ struct GameView: View {
 
             Button {
                 if listener.isListening {
+                    SoundBank.shared.play("earcon_listen_stop.wav")
                     listener.finishAndSend()
                 } else {
                     model.narrator.stop()
+                    SoundBank.shared.play("earcon_listen_start.wav")
                     listener.start { utterance in
                         model.ask(utterance)
                     }
@@ -212,7 +214,7 @@ struct GameView: View {
                     .foregroundColor(theme.accent)
 
                 HStack(spacing: 12) {
-                    ForEach(0..<spell.notes.count, id: \.self) { index in
+                    ForEach(0..<max(model.targetNotes.count, 1), id: \.self) { index in
                         Circle()
                             .fill(index < model.sungNotes.count ? theme.accent : theme.text.opacity(0.25))
                             .frame(width: 26, height: 26)
@@ -220,7 +222,7 @@ struct GameView: View {
                 }
 
                 HStack(spacing: 18) {
-                    ForEach(SolfegeNote.allCases.prefix(uniqueNoteCount(spell)), id: \.self) { note in
+                    ForEach(SolfegeNote.allCases.prefix(offeredNoteCount), id: \.self) { note in
                         Button(note.rawValue.capitalized) {
                             model.sing(note: note)
                         }
@@ -228,8 +230,8 @@ struct GameView: View {
                     }
                 }
 
-                Button("Sing it for me again") {
-                    model.startSongSpell(spell)
+                Button("Hear it again") {
+                    model.playTargetMelody()
                 }
                 .buttonStyle(GiantButtonStyle(theme: theme))
             }
@@ -244,10 +246,10 @@ struct GameView: View {
         .padding(50)
     }
 
-    /// Offer one extra note beyond the spell's highest, so there's a real
-    /// (but gentle) choice — challenge scales with the support level later.
-    private func uniqueNoteCount(_ spell: SongSpell) -> Int {
-        let highest = spell.notes.compactMap { SolfegeNote.allCases.firstIndex(of: $0) }.max() ?? 2
+    /// Offer one extra note beyond the melody's highest, so there's a real
+    /// (but gentle) choice.
+    private var offeredNoteCount: Int {
+        let highest = model.targetNotes.compactMap { SolfegeNote.allCases.firstIndex(of: $0) }.max() ?? 2
         return min(highest + 2, SolfegeNote.allCases.count)
     }
 }

@@ -94,6 +94,7 @@ final class AppModel: ObservableObject {
     func freezeBegan() {
         frozen = true
         narrator.stop()
+        SoundBank.shared.play("earcon_freeze.wav")
         if let game = activeGame {
             game.audio.setFrozen(true)
             narrator.speak(game.freezeReport(), voice: game.companion.voice)

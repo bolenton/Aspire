@@ -23,7 +23,7 @@
           },
           "ambience": [
             {
-              "asset": "wind_leaves_loop.caf",
+              "asset": "wind_leaves_loop.wav",
               "loops": true,
               "volume": 0.6,
               "nearRadius": 1.0,
@@ -31,7 +31,7 @@
               "spokenDescription": "wind in the leaves"
             },
             {
-              "asset": "crickets_loop.caf",
+              "asset": "crickets_loop.wav",
               "loops": true,
               "volume": 0.45,
               "nearRadius": 1.0,
@@ -46,7 +46,7 @@
               "name": "your companion",
               "position": { "x": 1.5, "y": 0, "z": -3 },
               "sound": {
-                "asset": "companion_call.caf",
+                "asset": "companion_call.wav",
                 "loops": true,
                 "volume": 1.0,
                 "nearRadius": 0.5,
@@ -62,7 +62,7 @@
               "name": "river",
               "position": { "x": 14, "y": 0, "z": 2 },
               "sound": {
-                "asset": "river_loop.caf",
+                "asset": "river_loop.wav",
                 "loops": true,
                 "volume": 0.9,
                 "nearRadius": 2.0,
@@ -77,7 +77,7 @@
               "name": "old oak",
               "position": { "x": 0, "y": 0, "z": -14 },
               "sound": {
-                "asset": "oak_creak_loop.caf",
+                "asset": "oak_creak_loop.wav",
                 "loops": true,
                 "volume": 0.8,
                 "nearRadius": 1.5,
@@ -92,7 +92,7 @@
               "name": "glowing acorn",
               "position": { "x": 1.5, "y": 0, "z": -15 },
               "sound": {
-                "asset": "acorn_chime_loop.caf",
+                "asset": "acorn_chime_loop.wav",
                 "loops": true,
                 "volume": 0.5,
                 "nearRadius": 0.5,
@@ -116,7 +116,7 @@
               "name": "broken bridge",
               "position": { "x": -11, "y": 0, "z": -4 },
               "sound": {
-                "asset": "bridge_creak_loop.caf",
+                "asset": "bridge_creak_loop.wav",
                 "loops": true,
                 "volume": 0.5,
                 "nearRadius": 1.0,
@@ -162,7 +162,7 @@
               "name": "songbird nest",
               "position": { "x": 6, "y": 5, "z": -10 },
               "sound": {
-                "asset": "chicks_quiet_loop.caf",
+                "asset": "chicks_quiet_loop.wav",
                 "loops": true,
                 "volume": 0.35,
                 "nearRadius": 0.5,
@@ -185,7 +185,7 @@
               "name": "hidden stream",
               "position": { "x": -7, "y": -1, "z": 5 },
               "sound": {
-                "asset": "stream_quiet_loop.caf",
+                "asset": "stream_quiet_loop.wav",
                 "loops": true,
                 "volume": 0.4,
                 "nearRadius": 0.5,
@@ -276,18 +276,18 @@
           "targetEntityID": "old_oak",
           "songSpellID": "oak_song",
           "intro": {
-            "base": "The oak is sleeping. Listen to its waking song, then sing it back: Do, Re, Mi!",
+            "base": "The oak is sleeping. Listen to its waking song, then sing it back!",
             "byCompanion": {
-              "ember": "The oak snores louder than me! Listen to its waking song, then sing it back: Do, Re, Mi — yip!",
-              "petal": "Shh... the oak is dreaming. Listen to its waking song, then sing it back softly: Do, Re, Mi.",
-              "clover": "The oak is deep asleep. Listen very carefully to its song, then we'll sing it back together: Do, Re, Mi."
+              "ember": "The oak snores louder than me! Listen to its waking song, then sing it back — yip!",
+              "petal": "Shh... the oak is dreaming. Listen to its waking song, then sing it back softly.",
+              "clover": "The oak is deep asleep. Listen very carefully to its song, then we'll sing it back together."
             }
           },
           "celebration": "The old oak stretches its branches awake! Leaves shiver with happiness all around you.",
           "hintLadder": [
             "Listen to the notes first, then copy them.",
-            "The song goes low to high: Do, then Re, then Mi.",
-            "Tap the three notes in order: Do, Re, Mi. Take your time — the oak loves to listen."
+            "The song climbs from low to high, one note at a time.",
+            "Tap the notes in order, low to high, just like the oak sang them. Take your time — the oak loves to listen."
           ],
           "setsFlag": "oak_awake"
         },
@@ -437,7 +437,7 @@
     {
       "id": "oak_song",
       "name": "The Oak's Waking Song",
-      "notes": ["do", "re", "mi"],
+      "notes": ["do", "re", "mi", "fa", "sol"],
       "tempo": 90
     }
   ]

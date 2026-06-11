@@ -6,7 +6,7 @@ is intended to be open-sourced, so provenance must be airtight.
 
 | Asset | Type | Source | Author | License | Notes |
 |---|---|---|---|---|---|
-| _(none yet — placeholders pending first audio pass)_ | | | | | |
+| Assets/Audio/*.wav (all 36 files) | audio | `Tools/generate_placeholder_audio.py` | this project (procedurally synthesized) | original work, CC0 | Placeholder pass — replace file-by-file per Assets/Audio/MANIFEST.md |
 
 ## Rules
 

@@ -34,6 +34,7 @@ struct CompanionPickerView: View {
                     ForEach(appModel.availableCompanions) { companion in
                         Button {
                             selectedID = companion.id
+                            SoundBank.shared.playCue("greeting", companion: companion)
                             appModel.narrator.speak(companion.introduction, voice: companion.voice)
                         } label: {
                             VStack(spacing: 14) {

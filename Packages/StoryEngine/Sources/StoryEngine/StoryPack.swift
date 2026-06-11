@@ -400,6 +400,8 @@ public enum SolfegeNote: String, Codable, Sendable, CaseIterable {
 public struct SongSpell: Codable, Equatable, Sendable {
     public var id: String
     public var name: String
+    /// The full melody ladder, easiest prefix first. How much of it the
+    /// player must sing back scales with the support level's challenge.
     public var notes: [SolfegeNote]
     public var tempo: Int
 
@@ -408,5 +410,12 @@ public struct SongSpell: Codable, Equatable, Sendable {
         self.name = name
         self.notes = notes
         self.tempo = tempo
+    }
+
+    /// Challenge 1 asks for the first three notes; each level adds one,
+    /// clamped to the authored melody. Complexity rises gently as she does.
+    public func notes(forChallenge challenge: Int) -> [SolfegeNote] {
+        let count = min(notes.count, max(1, 2 + challenge))
+        return Array(notes.prefix(count))
     }
 }

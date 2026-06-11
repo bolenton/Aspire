@@ -12,6 +12,9 @@ final class GameViewModel: ObservableObject {
     @Published var currentDialogue: DialogueNode?
     @Published var activeSongSpell: SongSpell?
     @Published var sungNotes: [SolfegeNote] = []
+    /// The portion of the melody she must sing back, scaled to her current
+    /// challenge level.
+    @Published var targetNotes: [SolfegeNote] = []
     @Published private(set) var events = EventLog()
     @Published var companionReply: String?
 
@@ -67,7 +70,11 @@ final class GameViewModel: ObservableObject {
             events.record(GameEvent(tick: tick, kind: .sceneEntered,
                                     spoken: "You stepped into \(scene.name)."))
             var opening = scene.spokenDescription.resolved(for: companion.id)
-            for finding in snapshot().abilityFindings {
+            let findings = snapshot().abilityFindings
+            if !findings.isEmpty {
+                SoundBank.shared.playCue("senseAlert", companion: companion)
+            }
+            for finding in findings {
                 opening += " \(finding)"
             }
             if let step = currentStep {
@@ -202,17 +209,37 @@ final class GameViewModel: ObservableObject {
     func startSongSpell(_ spell: SongSpell) {
         activeSongSpell = spell
         sungNotes = []
-        let names = spell.notes.map(\.rawValue.capitalized).joined(separator: ", ")
-        narrator.speak("Listen: \(names). Now you sing it back!", voice: companion.voice)
+        targetNotes = spell.notes(forChallenge: slot.difficulty.support.challenge)
+        let names = targetNotes.map(\.rawValue.capitalized).joined(separator: ", ")
+        narrator.speak("Listen: \(names). Now you sing it back!",
+                       voice: companion.voice) { [weak self] in
+            self?.playTargetMelody()
+        }
+    }
+
+    /// Plays the target melody as real tones at the spell's tempo —
+    /// listen first, then she repeats it.
+    func playTargetMelody() {
+        guard let spell = activeSongSpell else { return }
+        let beat = 60.0 / Double(max(spell.tempo, 30))
+        let melody = targetNotes
+        Task { @MainActor in
+            for note in melody {
+                SoundBank.shared.playNote(note)
+                try? await Task.sleep(nanoseconds: UInt64(beat * 1_000_000_000))
+            }
+        }
     }
 
     func sing(note: SolfegeNote) {
-        guard let spell = activeSongSpell else { return }
+        guard let spell = activeSongSpell, !targetNotes.isEmpty else { return }
+        SoundBank.shared.playNote(note)
         sungNotes.append(note)
-        narrator.speakWord(note.rawValue.capitalized, voice: companion.voice)
 
-        guard sungNotes.count >= spell.notes.count else { return }
-        if Array(sungNotes.suffix(spell.notes.count)) == spell.notes {
+        // Stop early on a wrong note? No — let her finish the phrase, then
+        // respond gently. Mid-phrase corrections feel like punishment.
+        guard sungNotes.count >= targetNotes.count else { return }
+        if Array(sungNotes.suffix(targetNotes.count)) == targetNotes {
             activeSongSpell = nil
             sungNotes = []
             events.record(GameEvent(tick: tick, kind: .songCast,
@@ -221,10 +248,12 @@ final class GameViewModel: ObservableObject {
                 completeCurrentStep(targetID: step.targetEntityID, kind: .song)
             }
         } else {
-            // Never punish: gentle retry, count it for the difficulty director.
             sungNotes = []
             recordTelemetry(kind: .song, succeeded: false)
-            narrator.speak("Almost! Let's try again, nice and slow.", voice: companion.voice)
+            narrator.speak("Almost! Listen once more, nice and slow.",
+                           voice: companion.voice) { [weak self] in
+                self?.playTargetMelody()
+            }
         }
     }
 
@@ -264,6 +293,11 @@ final class GameViewModel: ObservableObject {
         recordTelemetry(kind: kind, succeeded: true)
 
         var speech = completed.celebration.resolved(for: companion.id)
+
+        let questDone = slot.progress.activeQuest(in: pack)
+            .map { slot.progress.isQuestComplete($0) } ?? false
+        SoundBank.shared.play(questDone ? "celebrate_quest.wav" : "celebrate_step.wav")
+        SoundBank.shared.playCue("celebrate", companion: companion, volume: 0.8)
 
         if let quest = slot.progress.activeQuest(in: pack), slot.progress.isQuestComplete(quest) {
             slot.journal.remember(MemoryEvent(kind: .questCompleted, key: quest.id, value: "done",

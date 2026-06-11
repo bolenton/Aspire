@@ -20,11 +20,11 @@
         "volume": 1.0
       },
       "sounds": {
-        "greeting": "ember_greeting.caf",
-        "celebrate": "ember_celebrate.caf",
-        "senseAlert": "ember_sniffing.caf",
-        "ambientLoop": "ember_padding.caf",
-        "thinking": "ember_hum.caf"
+        "greeting": "ember_greeting.wav",
+        "celebrate": "ember_celebrate.wav",
+        "senseAlert": "ember_sniffing.wav",
+        "ambientLoop": "ember_padding.wav",
+        "thinking": "ember_hum.wav"
       },
       "abilities": [
         {
@@ -74,11 +74,11 @@
         "volume": 0.9
       },
       "sounds": {
-        "greeting": "petal_greeting.caf",
-        "celebrate": "petal_celebrate.caf",
-        "senseAlert": "petal_flutter_up.caf",
-        "ambientLoop": "petal_wings.caf",
-        "thinking": "petal_chime.caf"
+        "greeting": "petal_greeting.wav",
+        "celebrate": "petal_celebrate.wav",
+        "senseAlert": "petal_flutter_up.wav",
+        "ambientLoop": "petal_wings.wav",
+        "thinking": "petal_chime.wav"
       },
       "abilities": [
         {
@@ -128,11 +128,11 @@
         "volume": 0.95
       },
       "sounds": {
-        "greeting": "clover_greeting.caf",
-        "celebrate": "clover_thump.caf",
-        "senseAlert": "clover_ear_wiggle.caf",
-        "ambientLoop": "clover_hops.caf",
-        "thinking": "clover_soft_hum.caf"
+        "greeting": "clover_greeting.wav",
+        "celebrate": "clover_thump.wav",
+        "senseAlert": "clover_ear_wiggle.wav",
+        "ambientLoop": "clover_hops.wav",
+        "thinking": "clover_soft_hum.wav"
       },
       "abilities": [
         {
