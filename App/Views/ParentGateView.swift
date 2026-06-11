@@ -161,6 +161,17 @@ struct SettingsView: View {
                     }
                 }
 
+                section("About Lantern", theme) {
+                    Text("Lantern is an audio-first story adventure built for visually impaired kids — made by a dad for his daughter, and shared free in her honor.")
+                        .font(.system(size: 14))
+                    Text("Privacy: Lantern collects nothing. Progress, names, and memories stay on this device. Voice input runs on-device after an explicit tap. The only data that ever leaves is to an AI server a parent configures above — and that's off by default. Full policy: PRIVACY.md in the project repository.")
+                        .font(.system(size: 14))
+                        .foregroundColor(theme.text.opacity(0.8))
+                    Text("Credits: current sounds are original procedurally generated placeholders (CC0). All assets are ledgered in ASSETS.md; attributions for any future licensed assets will appear here.")
+                        .font(.system(size: 14))
+                        .foregroundColor(theme.text.opacity(0.8))
+                }
+
                 Button("Done") {
                     appModel.saveVault()
                     dismiss()

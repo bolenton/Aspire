@@ -238,6 +238,7 @@ struct GameView: View {
                             model.sing(note: note)
                         }
                         .buttonStyle(GiantButtonStyle(theme: theme, filled: false))
+                        .accessibilityLabel("Sing \(note.rawValue)")
                     }
                 }
 

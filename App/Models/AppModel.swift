@@ -81,12 +81,18 @@ final class AppModel: ObservableObject {
               let companion = availableCompanions.first(where: { $0.id == slot.companionID }) else {
             return nil
         }
-        return GameViewModel(slot: slot, pack: pack, companion: companion,
-                             childName: childName, narrator: narrator,
-                             brain: makeBrain()) { [weak self] updated in
-            self?.vault.update(updated)
-            self?.saveVault()
-        }
+        return GameViewModel(
+            slot: slot, pack: pack, companion: companion,
+            childName: childName, narrator: narrator, brain: makeBrain(),
+            sharedMemories: { [weak self] in self?.vault.sharedJournal.events ?? [] },
+            rememberShared: { [weak self] event in
+                self?.vault.sharedJournal.remember(event)
+                self?.saveVault()
+            },
+            saveSlot: { [weak self] updated in
+                self?.vault.update(updated)
+                self?.saveVault()
+            })
     }
 
     // MARK: - Freeze and explain (two-finger hold, works everywhere)

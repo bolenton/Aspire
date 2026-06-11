@@ -143,6 +143,21 @@ runner for every push.
       policy, and a "test the companion brain" button in parent settings.
       A bundled on-device Gemma stays future work (needs llama.cpp runtime
       + multi-GB weights); a home Ollama server covers that today
-- [ ] Castle region — the mended bridge leads there (next chapter)
-- [ ] TestFlight beta with AppleVis / audiogames.net communities
-- [ ] Free App Store release, Kids category — in her honor
+- [x] City of Lanterns: the mended bridge leads to the Lantern Courtyard —
+      Wick the lantern keeper, the seven-note bell tower song, lighting the
+      festival, and per-companion secrets (biscuit stall / flag garland /
+      the mice choir). The chapter-3 finale lights a whole city
+- [x] Memory fully wired: the companion's live AI context now carries her
+      remembered choices; "favorite" choices cross playthroughs
+- [x] Release engineering: PRIVACY.md (collects nothing), Docs/AppStore.md
+      (listing draft, Kids checklist, TestFlight guide), a one-click
+      TestFlight upload workflow (add 3 secrets to arm it), in-app
+      About/credits behind the parent gate, VoiceOver label pass
+
+Remaining steps are human ones:
+- [ ] Her first playtest — everything after this is steered by it
+- [ ] Curated/recorded sound pass replacing placeholders file-by-file
+- [ ] Commission the three companions (rigged + animated) and environment kit
+- [ ] Apple Developer account → run the Release workflow → TestFlight beta
+      with the AppleVis / audiogames.net communities → free Kids release,
+      in her honor

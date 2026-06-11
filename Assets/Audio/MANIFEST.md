@@ -37,6 +37,16 @@ stereo files break localization.
 | guardian_snore_loop.wav | placeholder | Boulder's deep sleepy rumble | "giant snore rumble" |
 | moonstone_shimmer_loop.wav | placeholder | Soft silvery shimmer, very quiet | "magic shimmer twinkle soft" |
 
+## Scene: Lantern Courtyard (City of Lanterns)
+
+| File | Status | Description | Search terms for final pass |
+|---|---|---|---|
+| castle_wind_loop.wav | placeholder | Open wind over castle walls | "wind castle walls open" |
+| banners_flap_loop.wav | placeholder | Cloth banners flapping, sparse | "flag cloth flap wind" |
+| bell_tower_loop.wav | placeholder | Deep sleepy bell strikes | "church bell distant slow" |
+| lantern_hum_loop.wav | placeholder | Warm lantern flame hum | "lamp hum warm flicker" |
+| mice_choir_loop.wav | placeholder | Tiny three-part squeaky singing | original recording, honestly |
+
 ## Companions (roster)
 
 | File | Status | Description |

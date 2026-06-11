@@ -31,6 +31,9 @@ final class GameViewModel: ObservableObject {
     let narrator: Narrator
     private let brain: any CompanionBrain
     private let saveSlot: (SaveSlot) -> Void
+    /// Child-level favorites shared across playthroughs (vault journal).
+    private let sharedMemories: () -> [MemoryEvent]
+    private let rememberShared: (MemoryEvent) -> Void
 
     private var sessionStart = Date()
     private var stepStartedAt = Date()
@@ -44,6 +47,8 @@ final class GameViewModel: ObservableObject {
 
     init(slot: SaveSlot, pack: StoryPack, companion: Companion, childName: String,
          narrator: Narrator, brain: any CompanionBrain,
+         sharedMemories: @escaping () -> [MemoryEvent] = { [] },
+         rememberShared: @escaping (MemoryEvent) -> Void = { _ in },
          saveSlot: @escaping (SaveSlot) -> Void) {
         self.slot = slot
         self.pack = pack
@@ -51,6 +56,8 @@ final class GameViewModel: ObservableObject {
         self.childName = childName
         self.narrator = narrator
         self.brain = brain
+        self.sharedMemories = sharedMemories
+        self.rememberShared = rememberShared
         self.saveSlot = saveSlot
     }
 
@@ -130,8 +137,12 @@ final class GameViewModel: ObservableObject {
     }
 
     func context() -> CompanionContext {
-        CompanionContext(companion: companion, childName: childName,
-                         snapshot: snapshot(), recentMemories: [])
+        let merged = (slot.journal.events + sharedMemories())
+            .sorted { $0.date > $1.date }
+            .prefix(8)
+            .map(\.spokenRecap)
+        return CompanionContext(companion: companion, childName: childName,
+                                snapshot: snapshot(), recentMemories: Array(merged))
     }
 
     func freezeReport() -> String {
@@ -225,10 +236,18 @@ final class GameViewModel: ObservableObject {
 
     func choose(_ choice: DialogueChoice) {
         if let key = choice.memoryKey, let value = choice.memoryValue {
-            let event = MemoryEvent(kind: .choice, key: key, value: value,
+            // Favorites are about the child and cross playthroughs; story
+            // choices stay with this companion's journey.
+            let isFavorite = key.hasPrefix("favorite")
+            let event = MemoryEvent(kind: isFavorite ? .favorite : .choice,
+                                    key: key, value: value,
                                     spokenRecap: "You chose: \(choice.text.resolved(for: companion.id))",
                                     companionID: companion.id)
-            slot.journal.remember(event)
+            if isFavorite {
+                rememberShared(event)
+            } else {
+                slot.journal.remember(event)
+            }
         }
         if let nextID = choice.nextDialogueID, let next = pack.dialogue(id: nextID) {
             currentDialogue = next

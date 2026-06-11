@@ -263,6 +263,53 @@ def moonstone_shimmer_loop():
     return loopify([s * 0.55 for s in sig], fade=0.25)
 
 
+# --------------------------------------------------- City of Lanterns cues
+
+def castle_wind_loop():
+    sig = bandpass(white(6.0), 400, 2200)
+    gust = lowpass(white(6.0), 4)
+    sig = [s * (0.55 + 0.45 * g) for s, g in zip(sig, gust)]
+    return loopify(sig)
+
+
+def banners_flap_loop():
+    sig = silence(6.0)
+    at = 0.3
+    while at < 5.6:
+        flap = bandpass(white(0.12), 300, 1600)
+        mix(sig, fade_edges(flap, 0.03), at=at, gain=0.7)
+        at += random.uniform(0.5, 1.1)
+    return loopify(sig, fade=0.3)
+
+
+def bell_tower_loop():
+    sig = silence(8.0)
+    for at, f in [(0.4, 175), (3.2, 220), (5.6, 175)]:
+        strike = silence(2.6)
+        mix(strike, tone(f, 2.6, attack=0.005, decay=0.9,
+                         partials=((1, 1.0), (2.4, 0.5), (3.9, 0.25), (5.4, 0.1))))
+        mix(sig, strike, at=at, gain=0.8)
+    return loopify(sig, fade=0.4)
+
+
+def lantern_hum_loop():
+    sig = tone(160, 5.0, partials=((1, 1.0), (2, 0.4), (3, 0.1)), attack=0.3,
+               vibrato=0.02, vib_rate=6)
+    flicker = lowpass(white(5.0), 18)
+    sig = [a * (0.8 + 0.2 * b) for a, b in zip(sig, flicker)]
+    return loopify(sig, fade=0.4)
+
+
+def mice_choir_loop():
+    sig = silence(6.0)
+    for at in [0.5, 2.4, 4.3]:
+        for offset, f in [(0.0, 2793), (0.12, 3520), (0.24, 4186)]:
+            squeak = tone(f, 0.22, attack=0.02, decay=0.1, vibrato=0.04,
+                          vib_rate=9, gain=0.35)
+            mix(sig, squeak, at=at + offset)
+    return loopify([s * 0.5 for s in sig], fade=0.3)
+
+
 # --------------------------------------------------------- companion sounds
 
 def yip(freq_from=600, freq_to=1400):
@@ -455,6 +502,11 @@ CUES = {
     "crystal_chime_loop.wav": crystal_chime_loop,
     "guardian_snore_loop.wav": guardian_snore_loop,
     "moonstone_shimmer_loop.wav": moonstone_shimmer_loop,
+    "castle_wind_loop.wav": castle_wind_loop,
+    "banners_flap_loop.wav": banners_flap_loop,
+    "bell_tower_loop.wav": bell_tower_loop,
+    "lantern_hum_loop.wav": lantern_hum_loop,
+    "mice_choir_loop.wav": mice_choir_loop,
     "ember_greeting.wav": ember_greeting,
     "ember_celebrate.wav": ember_celebrate,
     "ember_sniffing.wav": ember_sniffing,

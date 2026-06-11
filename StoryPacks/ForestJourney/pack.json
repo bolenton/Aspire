@@ -131,6 +131,7 @@
               "name": "castle gate",
               "position": { "x": -17, "y": 0, "z": -8 },
               "visual": { "shape": "door", "colorHex": "#B48CF2", "scale": 3.0, "glow": 1.4 },
+              "destinationSceneID": "lantern_courtyard",
               "requiresFlag": "bridge_repaired",
               "lockedExplanation": {
                 "base": "We can go to the castle someday — but the bridge is still broken.",
@@ -390,6 +391,176 @@
               },
               "hiddenTease": "Sometimes the floor seems to murmur down low, but it's too quiet for me.",
               "visual": { "shape": "ribbon", "colorHex": "#6FB8E8", "scale": 1.8, "glow": 1.4 }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "city_of_lanterns",
+      "name": "City of Lanterns",
+      "difficultyTier": 3,
+      "newMechanic": "festival_of_lights",
+      "scenes": [
+        {
+          "id": "lantern_courtyard",
+          "name": "the Lantern Courtyard",
+          "spokenDescription": {
+            "base": "A grand castle courtyard under the open sky. Banners flap in the wind, and a hundred sleeping lanterns wait for someone to wake the festival.",
+            "byCompanion": {
+              "ember": "A castle courtyard, at last! It smells like old stories and — sniff sniff — biscuits, somewhere! Banners are flapping, and a hundred sleepy lanterns are waiting for us. Yip!",
+              "petal": "Ooh... a courtyard under the whole wide sky. The banners dance with the wind, and a hundred lanterns are dreaming of light. What a place to flutter.",
+              "clover": "A great big courtyard... I can hear banners flapping way up high, and a hundred little lanterns humming in their sleep. They're waiting for the festival."
+            }
+          },
+          "ambience": [
+            {
+              "asset": "castle_wind_loop.wav",
+              "loops": true,
+              "volume": 0.5,
+              "nearRadius": 1.0,
+              "farRadius": 1000.0,
+              "spokenDescription": "wind over the castle walls"
+            },
+            {
+              "asset": "banners_flap_loop.wav",
+              "loops": true,
+              "volume": 0.4,
+              "nearRadius": 1.0,
+              "farRadius": 1000.0,
+              "spokenDescription": "banners flapping"
+            }
+          ],
+          "entities": [
+            {
+              "id": "courtyard_gate",
+              "kind": "portal",
+              "name": "gate back to the forest",
+              "position": { "x": 0, "y": 0, "z": 9 },
+              "sound": {
+                "asset": "wind_leaves_loop.wav",
+                "loops": true,
+                "volume": 0.35,
+                "nearRadius": 1.0,
+                "farRadius": 16.0,
+                "spokenDescription": "the forest breeze through the gate"
+              },
+              "visual": { "shape": "door", "colorHex": "#B48CF2", "scale": 2.4, "glow": 1.2 },
+              "destinationSceneID": "fox_hollow"
+            },
+            {
+              "id": "bell_tower",
+              "kind": "character",
+              "name": "bell tower",
+              "position": { "x": 0, "y": 0, "z": -16 },
+              "sound": {
+                "asset": "bell_tower_loop.wav",
+                "loops": true,
+                "volume": 0.8,
+                "nearRadius": 2.0,
+                "farRadius": 30.0,
+                "spokenDescription": "deep sleepy bells"
+              },
+              "visual": { "shape": "tree", "colorHex": "#D8C9A8", "scale": 3.2, "glow": 1.3 }
+            },
+            {
+              "id": "lantern_keeper",
+              "kind": "character",
+              "name": "Wick the lantern keeper",
+              "position": { "x": -4, "y": 0, "z": -7 },
+              "sound": {
+                "asset": "lantern_hum_loop.wav",
+                "loops": true,
+                "volume": 0.45,
+                "nearRadius": 1.0,
+                "farRadius": 14.0,
+                "spokenDescription": "a warm humming lantern"
+              },
+              "visual": { "shape": "sphere", "colorHex": "#FFC76B", "scale": 1.2, "glow": 1.6 },
+              "dialogueID": "d_keeper"
+            },
+            {
+              "id": "lantern_east",
+              "kind": "landmark",
+              "name": "east lantern",
+              "position": { "x": 11, "y": 0, "z": -5 },
+              "sound": {
+                "asset": "lantern_hum_loop.wav",
+                "loops": true,
+                "volume": 0.4,
+                "nearRadius": 1.0,
+                "farRadius": 18.0,
+                "spokenDescription": "a lantern humming to the east"
+              },
+              "visual": { "shape": "sphere", "colorHex": "#FFD24A", "scale": 1.0, "glow": 1.4 }
+            },
+            {
+              "id": "lantern_west",
+              "kind": "landmark",
+              "name": "west lantern",
+              "position": { "x": -11, "y": 0, "z": -10 },
+              "sound": {
+                "asset": "lantern_hum_loop.wav",
+                "loops": true,
+                "volume": 0.4,
+                "nearRadius": 1.0,
+                "farRadius": 18.0,
+                "spokenDescription": "a lantern humming to the west"
+              },
+              "visual": { "shape": "sphere", "colorHex": "#FFD24A", "scale": 1.0, "glow": 1.4 }
+            },
+            {
+              "id": "biscuit_stall",
+              "kind": "item",
+              "name": "festival biscuit stall",
+              "position": { "x": 6, "y": 0, "z": 2 },
+              "requiresAbility": "keen_smell",
+              "senseLine": {
+                "base": "My nose found the festival biscuit stall — honey, cinnamon, and a hundred years of crumbs!",
+                "byCompanion": {
+                  "ember": "Sniff sniff — YIP YIP! A whole biscuit stall! Honey, cinnamon, and a hundred years of delicious crumbs. Foxes first!"
+                }
+              },
+              "hiddenTease": "Something over there smells faintly of honey, but I can't tell what it is.",
+              "visual": { "shape": "mound", "colorHex": "#E8A33D", "scale": 1.0, "glow": 1.4 }
+            },
+            {
+              "id": "flag_garland",
+              "kind": "item",
+              "name": "flag garland",
+              "position": { "x": -3, "y": 7, "z": -13 },
+              "requiresAbility": "high_flight",
+              "senseLine": {
+                "base": "Up between the towers — a garland of a thousand tiny flags, every color there is!",
+                "byCompanion": {
+                  "petal": "Ooh... up between the towers, a garland of a thousand tiny flags — every color there is, and a few colors there aren't. The sky always knows!"
+                }
+              },
+              "hiddenTease": "Something flutters way up between the towers, but it's too high to make out.",
+              "visual": { "shape": "ribbon", "colorHex": "#FF9ECF", "scale": 1.2, "glow": 1.5 }
+            },
+            {
+              "id": "mice_choir",
+              "kind": "character",
+              "name": "mice choir",
+              "position": { "x": 12, "y": 0, "z": -13 },
+              "sound": {
+                "asset": "mice_choir_loop.wav",
+                "loops": true,
+                "volume": 0.3,
+                "nearRadius": 0.5,
+                "farRadius": 8.0,
+                "spokenDescription": "tiny squeaky singing"
+              },
+              "requiresAbility": "super_hearing",
+              "senseLine": {
+                "base": "Behind the wall — a tiny mice choir is practicing for the festival! They're singing in three-part squeak.",
+                "byCompanion": {
+                  "clover": "Oh my... do you hear it? Behind the wall, a tiny mice choir is practicing for the festival. Three-part squeak. It's the most beautiful thing my ears ever found."
+                }
+              },
+              "hiddenTease": "I keep thinking I hear teeny-tiny voices somewhere, but they're too quiet for me.",
+              "visual": { "shape": "mound", "colorHex": "#C8B8E8", "scale": 0.6, "glow": 1.3 }
             }
           ]
         }
@@ -659,6 +830,98 @@
           "setsFlag": "bridge_repaired"
         }
       ]
+    },
+    {
+      "id": "the_festival_of_lights",
+      "title": "The Festival of Lights",
+      "requiresFlag": "bridge_repaired",
+      "spokenSummary": {
+        "base": "The bridge is mended and the castle road is open! The City of Lanterns has been dark and quiet for too long — let's wake the bell tower and light the festival again.",
+        "byCompanion": {
+          "ember": "Yip yip! The bridge is fixed and the castle road is OURS! The City of Lanterns has been dark too long — let's wake those bells and light the festival!",
+          "petal": "The bridge is mended... and the castle road is open like a ribbon. The City of Lanterns has slept in the dark too long. Let's wake the bells and give it back its light.",
+          "clover": "The bridge is all better now... and the castle road is open. The City of Lanterns has been so quiet, so long. Let's wake the bells together and light the festival again."
+        }
+      },
+      "steps": [
+        {
+          "id": "cross_bridge",
+          "goal": "reach",
+          "targetEntityID": "castle_gate",
+          "intro": "Cross the mended bridge to the castle gate — listen for the flapping banners beyond it.",
+          "celebration": "The castle gate swings open with a creak that sounds almost like 'welcome'!",
+          "hintLadder": [
+            "The castle gate is past the broken bridge — well, the mended bridge now!",
+            "Head toward where the bridge used to creak, ahead on your left, and keep going to the gate.",
+            "Walk ahead-left past the bridge until you reach the castle gate, then go through it."
+          ]
+        },
+        {
+          "id": "meet_keeper",
+          "goal": "talk",
+          "targetEntityID": "lantern_keeper",
+          "intro": "Someone is humming beside a single lit lantern. Let's go say hello.",
+          "celebration": "Wick bows so low his cap nearly falls off.",
+          "hintLadder": [
+            "Listen for the one warm humming lantern.",
+            "The lantern keeper is ahead on your left, beside the humming lantern.",
+            "Walk ahead and left toward the warm hum, then tap Wick to talk to him."
+          ]
+        },
+        {
+          "id": "wake_bells",
+          "goal": "song",
+          "targetEntityID": "bell_tower",
+          "songSpellID": "bell_song",
+          "intro": {
+            "base": "The bell tower sleeps deepest of all. Its waking song is the longest one yet — listen with everything you have!",
+            "byCompanion": {
+              "ember": "The bell tower snores even louder than Boulder! Its song is the longest one yet — ears UP, yip!",
+              "petal": "The bell tower is dreaming a hundred-year dream... its song is the longest one yet. One wingbeat at a time.",
+              "clover": "The bell tower is in the deepest sleep of all... its song is the longest we've ever sung. We'll take it slow, together."
+            }
+          },
+          "celebration": "BONG! BONG! The bells wake the whole sky! Pigeons cheer. Somewhere, the mice choir hits a perfect note.",
+          "hintLadder": [
+            "Stand by the bell tower and listen to its whole song first.",
+            "The bells' song climbs like a staircase. Tap 'Hear it again' as many times as you like.",
+            "Copy the notes from low to high, one at a time. The bells have waited a hundred years — they don't mind waiting for you."
+          ],
+          "setsFlag": "bells_awake"
+        },
+        {
+          "id": "light_east",
+          "goal": "reach",
+          "targetEntityID": "lantern_east",
+          "intro": "Now the lanterns! Carry the bell-song's warmth to the east lantern.",
+          "celebration": "The east lantern flares gold! Its light skips from lantern to lantern down the whole east wall.",
+          "hintLadder": [
+            "Listen for the lantern humming on your right.",
+            "The east lantern is to your right, a good walk away.",
+            "Turn right and walk toward the humming lantern until you're right beside it."
+          ]
+        },
+        {
+          "id": "light_west",
+          "goal": "reach",
+          "targetEntityID": "lantern_west",
+          "intro": "One more — the west lantern, across the courtyard!",
+          "celebration": {
+            "base": "The west lantern blazes — and the whole city wakes at once! A thousand lanterns rise glowing into the sky, the bells ring, the banners dance, and the festival is back. You did this. You lit a whole city.",
+            "byCompanion": {
+              "ember": "YIP YIP YIIIP! Look at it! A thousand lanterns going up like golden fireflies! The bells! The banners! YOU lit a whole city, you wonderful adventurer! This is the best day of my entire fox life!",
+              "petal": "Ooh... oh... look. A thousand lanterns rising like a sky full of new stars. The whole city is dancing. You did this, dear heart. You gave a city back its light.",
+              "clover": "Oh my... oh my... a thousand lanterns, all going up at once. Listen — the bells, the banners, the mice choir singing their hearts out. You lit a whole city. And I got to hold your hand while you did it."
+            }
+          },
+          "hintLadder": [
+            "Listen for the last humming lantern, on your other side.",
+            "The west lantern is to your left, across the courtyard.",
+            "Turn left and walk across the courtyard toward the humming — the last lantern is waiting for you."
+          ],
+          "setsFlag": "festival_lit"
+        }
+      ]
     }
   ],
   "dialogues": [
@@ -751,6 +1014,39 @@
       "speaker": "Boulder",
       "line": "Ho ho ho! Adventure time, is it? You remind me of the earthquakes — full of bounce! Very well: the singing crystal will teach you its song. Sing it back, and the moonstone is yours. Wake me when you're famous... zzz...",
       "choices": []
+    },
+    {
+      "id": "d_keeper",
+      "speaker": "Wick",
+      "line": "Oh! Oh my goodness — a visitor! I'm Wick, keeper of the lanterns. A hundred years I've kept this one little flame going, waiting for someone brave enough to wake the bells. Tell me, little light — what should the festival have MORE of, when it comes back?",
+      "choices": [
+        {
+          "id": "c_music",
+          "text": "More music!",
+          "nextDialogueID": "d_keeper_music",
+          "memoryKey": "festival_wish",
+          "memoryValue": "music"
+        },
+        {
+          "id": "c_friends",
+          "text": "More friends!",
+          "nextDialogueID": "d_keeper_friends",
+          "memoryKey": "festival_wish",
+          "memoryValue": "friends"
+        }
+      ]
+    },
+    {
+      "id": "d_keeper_music",
+      "speaker": "Wick",
+      "line": "More music! Yes, YES — then you're exactly who we need. The bell tower starts every festival, and its song is the grandest in the kingdom. Go wake it, little light. I'll warm up my singing voice — it's only a hundred years out of practice.",
+      "choices": []
+    },
+    {
+      "id": "d_keeper_friends",
+      "speaker": "Wick",
+      "line": "More friends... oh, that's the best wish of all. A festival is just lights until friends stand under them. Well — you brought a friend, and now you've got me too, so we're three already! Go wake the bell tower, little light, and let's invite the whole world.",
+      "choices": []
     }
   ],
   "songSpells": [
@@ -765,6 +1061,12 @@
       "name": "The Crystal's Echo Song",
       "notes": ["do", "mi", "sol", "la", "ti"],
       "tempo": 80
+    },
+    {
+      "id": "bell_song",
+      "name": "The Bell Tower's Festival Song",
+      "notes": ["do", "re", "mi", "fa", "sol", "la", "ti"],
+      "tempo": 75
     }
   ]
 }

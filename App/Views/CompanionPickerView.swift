@@ -57,6 +57,7 @@ struct CompanionPickerView: View {
                             .shadow(color: theme.accent.opacity(selectedID == companion.id ? 0.8 : 0.2),
                                     radius: 16)
                         }
+                        .accessibilityLabel("\(companion.name) the \(companion.species). Tap to hear them say hello.")
                     }
                 }
 
