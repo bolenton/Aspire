@@ -35,11 +35,11 @@ struct CompanionPickerView: View {
                         Button {
                             selectedID = companion.id
                             SoundBank.shared.playCue("greeting", companion: companion)
-                            appModel.narrator.speak(companion.introduction, voice: companion.voice)
+                            appModel.narrator.speak(companion.introduction, voice: companion.resolvedVoice)
                         } label: {
                             VStack(spacing: 14) {
-                                Text(emoji(for: companion))
-                                    .font(.system(size: theme.fontSize(64)))
+                                CompanionAvatarView(companion: companion, narrator: appModel.narrator,
+                                                    size: theme.fontSize(96), theme: theme)
                                 Text(companion.name)
                                     .font(.system(size: theme.fontSize(28), weight: .bold, design: .rounded))
                                 Text("the \(companion.species)")

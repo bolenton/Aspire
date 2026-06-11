@@ -71,6 +71,7 @@ enum WorldBuilder {
         let scale = Float(spec.scale)
         let body = shape(spec.shape, tint: tint, scale: scale)
         root.addChild(body)
+        root.addChild(blobShadow(radius: 0.7 * scale))
 
         let glow = Float(spec.glow * glowBoost)
         if glow > 0.1 {
@@ -138,5 +139,63 @@ enum WorldBuilder {
     static func firefly() -> ModelEntity {
         ModelEntity(mesh: .generateSphere(radius: 0.05),
                     materials: [glowMaterial(UIColor(red: 1.0, green: 0.88, blue: 0.45, alpha: 1), emissive: 4.0)])
+    }
+
+    /// Soft dark disc that grounds an object on the floor — without shadows,
+    /// everything reads as floating.
+    static func blobShadow(radius: Float) -> ModelEntity {
+        var material = PhysicallyBasedMaterial()
+        material.baseColor = .init(tint: .black)
+        material.roughness = 1.0
+        material.blending = .transparent(opacity: .init(floatLiteral: 0.5))
+        let shadow = ModelEntity(mesh: .generateSphere(radius: radius), materials: [material])
+        shadow.scale = SIMD3<Float>(1.0, 0.04, 1.0)
+        shadow.position.y = 0.03
+        return shadow
+    }
+
+    /// Her visible self: a small bright traveler so "where am I?" always has
+    /// a visual answer in the third-person view.
+    static func playerMarker() -> RealityKit.Entity {
+        let root = RealityKit.Entity()
+        let body = ModelEntity(
+            mesh: .generateBox(width: 0.5, height: 0.95, depth: 0.4, cornerRadius: 0.2),
+            materials: [glowMaterial(UIColor(red: 1.0, green: 0.82, blue: 0.29, alpha: 1), emissive: 2.4)])
+        body.position.y = 0.55
+        let head = ModelEntity(
+            mesh: .generateSphere(radius: 0.27),
+            materials: [glowMaterial(UIColor(red: 1.0, green: 0.96, blue: 0.86, alpha: 1), emissive: 3.0)])
+        head.position.y = 1.28
+        root.addChild(body)
+        root.addChild(head)
+        root.addChild(blobShadow(radius: 0.55))
+        return root
+    }
+
+    /// Tall translucent pillar of light over the quest target — readable from
+    /// anywhere in the scene, the classic "go here" cue.
+    static func questBeacon() -> ModelEntity {
+        let pillar = ModelEntity(
+            mesh: .generateBox(width: 0.4, height: 14, depth: 0.4, cornerRadius: 0.2),
+            materials: [haloMaterial(UIColor(red: 1.0, green: 0.85, blue: 0.35, alpha: 1), opacity: 0.3)])
+        pillar.position.y = 7
+        return pillar
+    }
+
+    /// A grid of dim moss-lights on the ground: cheap motion parallax so
+    /// walking visibly LOOKS like moving.
+    static func groundDots() -> RealityKit.Entity {
+        let root = RealityKit.Entity()
+        let material = glowMaterial(UIColor(red: 0.25, green: 0.55, blue: 0.40, alpha: 1), emissive: 0.9)
+        let mesh = MeshResource.generateSphere(radius: 0.14)
+        for x in stride(from: -25, through: 25, by: 5) {
+            for z in stride(from: -25, through: 25, by: 5) {
+                let dot = ModelEntity(mesh: mesh, materials: [material])
+                dot.scale = SIMD3<Float>(1.0, 0.18, 1.0)
+                dot.position = SIMD3<Float>(Float(x), 0.02, Float(z))
+                root.addChild(dot)
+            }
+        }
+        return root
     }
 }

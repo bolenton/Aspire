@@ -46,13 +46,15 @@ struct WorldView: UIViewRepresentable {
         private weak var arView: ARView?
         private var worldAnchor: AnchorEntity?
         private var camera: PerspectiveCamera?
+        private var playerEntity: RealityKit.Entity?
+        private var beacon: ModelEntity?
         private var entityNodes: [String: RealityKit.Entity] = [:]
         private var fireflies: [(entity: ModelEntity, phase: Float, radius: Float, center: SIMD3<Float>)] = []
         private var updateSubscription: Cancellable?
 
         private(set) var builtRevision = -1
         private var questTargetID: String?
-        private var targetPosition = SIMD3<Float>(0, 1.4, 0)
+        private var targetPosition = SIMD3<Float>(0, 0, 0)
         private var targetYaw: Float = 0
         private var elapsed: Float = 0
 
@@ -64,6 +66,16 @@ struct WorldView: UIViewRepresentable {
             worldAnchor = anchor
 
             anchor.addChild(WorldBuilder.ground())
+            anchor.addChild(WorldBuilder.groundDots())
+
+            let player = WorldBuilder.playerMarker()
+            anchor.addChild(player)
+            playerEntity = player
+
+            let beacon = WorldBuilder.questBeacon()
+            beacon.isEnabled = false
+            anchor.addChild(beacon)
+            self.beacon = beacon
 
             let light = DirectionalLight()
             light.light.intensity = 1200
@@ -92,7 +104,7 @@ struct WorldView: UIViewRepresentable {
         }
 
         func setCameraTarget(pose: PlayerPose) {
-            targetPosition = SIMD3<Float>(Float(pose.position.x), 1.4, Float(pose.position.z))
+            targetPosition = SIMD3<Float>(Float(pose.position.x), 0, Float(pose.position.z))
             targetYaw = Float(-pose.headingDegrees * .pi / 180)
         }
 
@@ -119,12 +131,36 @@ struct WorldView: UIViewRepresentable {
 
         private func tick(deltaTime: Float) {
             elapsed += deltaTime
+            let blend: Float = min(1.0, deltaTime * 4.5)
 
+            // Third-person camera: behind and above her, so she can SEE
+            // herself, her companion's world, and where she's headed.
+            let headingRad = -targetYaw
+            let forward = SIMD3<Float>(sin(headingRad), 0, -cos(headingRad))
             if let camera {
-                let blend: Float = min(1.0, deltaTime * 5.0)
-                camera.position += (targetPosition - camera.position) * blend
-                let goal = simd_quatf(angle: targetYaw, axis: SIMD3<Float>(0, 1, 0))
-                camera.orientation = simd_slerp(camera.orientation, goal, blend)
+                let goal = targetPosition - forward * 7.5 + SIMD3<Float>(0, 5.5, 0)
+                camera.position += (goal - camera.position) * blend
+                camera.look(at: targetPosition + forward * 2.5 + SIMD3<Float>(0, 1.0, 0),
+                            from: camera.position, relativeTo: nil)
+            }
+
+            if let playerEntity {
+                playerEntity.position += (targetPosition - playerEntity.position) * min(1.0, deltaTime * 6.0)
+                playerEntity.orientation = simd_slerp(
+                    playerEntity.orientation,
+                    simd_quatf(angle: targetYaw, axis: SIMD3<Float>(0, 1, 0)),
+                    min(1.0, deltaTime * 6.0))
+            }
+
+            if let beacon {
+                if let id = questTargetID, let node = entityNodes[id] {
+                    beacon.isEnabled = true
+                    beacon.position = SIMD3<Float>(node.position.x, 7, node.position.z)
+                    let pulse = 1.0 + 0.1 * sin(elapsed * 2.0)
+                    beacon.scale = SIMD3<Float>(pulse, 1.0, pulse)
+                } else {
+                    beacon.isEnabled = false
+                }
             }
 
             for (firefly, phase, radius, center) in fireflies {

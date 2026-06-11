@@ -106,7 +106,7 @@ final class GameViewModel: ObservableObject {
         if let step = currentStep {
             opening += " \(step.intro.resolved(for: companion.id))"
         }
-        narrator.speak(opening, voice: companion.voice)
+        narrator.speak(opening, voice: companion.resolvedVoice)
     }
 
     func end() {
@@ -197,7 +197,7 @@ final class GameViewModel: ObservableObject {
         let availability = slot.progress.availability(of: entity)
         if !availability.available {
             if let explanation = availability.explanation {
-                narrator.speak(explanation, voice: companion.voice)
+                narrator.speak(explanation, voice: companion.resolvedVoice)
             }
             return
         }
@@ -230,7 +230,7 @@ final class GameViewModel: ObservableObject {
         if let dialogueID = entity.dialogueID, let dialogue = pack.dialogue(id: dialogueID) {
             currentDialogue = dialogue
         } else if let sense = entity.senseLine, nearby.revealedByAbilityID != nil {
-            narrator.speak(sense.resolved(for: companion.id), voice: companion.voice)
+            narrator.speak(sense.resolved(for: companion.id), voice: companion.resolvedVoice)
         }
     }
 
@@ -251,7 +251,7 @@ final class GameViewModel: ObservableObject {
         }
         if let nextID = choice.nextDialogueID, let next = pack.dialogue(id: nextID) {
             currentDialogue = next
-            narrator.speak(next.line.resolved(for: companion.id), voice: companion.voice)
+            narrator.speak(next.line.resolved(for: companion.id), voice: companion.resolvedVoice)
         } else {
             currentDialogue = nil
             events.record(GameEvent(tick: tick, kind: .dialogueFinished,
@@ -271,7 +271,7 @@ final class GameViewModel: ObservableObject {
         targetNotes = spell.notes(forChallenge: slot.difficulty.support.challenge)
         let names = targetNotes.map(\.rawValue.capitalized).joined(separator: ", ")
         narrator.speak("Listen: \(names). Now you sing it back!",
-                       voice: companion.voice) { [weak self] in
+                       voice: companion.resolvedVoice) { [weak self] in
             self?.playTargetMelody()
         }
     }
@@ -310,7 +310,7 @@ final class GameViewModel: ObservableObject {
             sungNotes = []
             recordTelemetry(kind: .song, succeeded: false)
             narrator.speak("Almost! Listen once more, nice and slow.",
-                           voice: companion.voice) { [weak self] in
+                           voice: companion.resolvedVoice) { [weak self] in
                 self?.playTargetMelody()
             }
         }
@@ -329,7 +329,7 @@ final class GameViewModel: ObservableObject {
                     ?? "I'm right here with you."
             }
             self.companionReply = reply
-            self.narrator.speak(reply, voice: self.companion.voice)
+            self.narrator.speak(reply, voice: self.companion.resolvedVoice)
         }
     }
 
@@ -337,7 +337,7 @@ final class GameViewModel: ObservableObject {
         stepHintsUsed += 1
         guard let step = currentStep else { return }
         let hint = slot.difficulty.hint(for: step, companionID: companion.id)
-        narrator.speak(hint, voice: companion.voice)
+        narrator.speak(hint, voice: companion.resolvedVoice)
     }
 
     // MARK: - Progress
@@ -375,7 +375,7 @@ final class GameViewModel: ObservableObject {
             speech += " \(next.intro.resolved(for: companion.id))"
         }
 
-        narrator.speak(speech, voice: companion.voice)
+        narrator.speak(speech, voice: companion.resolvedVoice)
         stepStartedAt = Date()
         stepHintsUsed = 0
         persist()

@@ -42,6 +42,7 @@ final class AppModel: ObservableObject {
             try CompanionRoster.load(from: $0)
         }
         narrator.profile = vault.calibration
+        VoiceDirector.shared.configureAutoVoices(companionIDs: availableCompanions.map(\.id))
     }
 
     private static func loadResource<T>(_ subdirectory: String, file: String,
@@ -103,7 +104,7 @@ final class AppModel: ObservableObject {
         SoundBank.shared.play("earcon_freeze.wav")
         if let game = activeGame {
             game.audio.setFrozen(true)
-            narrator.speak(game.freezeReport(), voice: game.companion.voice)
+            narrator.speak(game.freezeReport(), voice: game.companion.resolvedVoice)
         } else {
             narrator.speak(menuSituationDescription)
         }
@@ -197,7 +198,7 @@ final class AppModel: ObservableObject {
                                        snapshot: snapshot)
         do {
             let reply = try await makeBrain().reply(to: "Hello! Who are you?", context: context)
-            narrator.speak(reply, voice: companion.voice)
+            narrator.speak(reply, voice: companion.resolvedVoice)
             return "✓ \(brainStatusDescription)\n\(companion.name) says: “\(reply)”"
         } catch {
             return "✗ No answer (\(error.localizedDescription)). In the game, the built-in storyteller covers for it automatically."

@@ -82,6 +82,10 @@ struct SettingsView: View {
     @AppStorage("brain.provider") private var brainProviderRaw = BrainProviderChoice.auto.rawValue
     @State private var brainTestResult: String?
     @State private var testingBrain = false
+    @State private var personalVoiceEnabled = VoiceDirector.shared.personalVoiceAuthorized
+    @State private var availableVoiceIdentifiers: [String] = []
+    @State private var voiceNames: [String: String] = [:]
+    @State private var voiceOverrides: [String: String] = [:]
 
     var body: some View {
         let theme = appModel.theme
@@ -113,6 +117,46 @@ struct SettingsView: View {
                         Text("Help early").tag(HintAggressiveness.eager)
                     }
                     .pickerStyle(.segmented)
+                }
+
+                section("Companion voices", theme) {
+                    Text("The best installed voices are assigned automatically. For nicer ones: Settings → Accessibility → Spoken Content → Voices → English, and download Premium or Enhanced voices. To add YOUR voice: record it in Settings → Accessibility → Personal Voice, then enable access here and pick it for any companion.")
+                        .font(.system(size: 14))
+                        .foregroundColor(theme.text.opacity(0.7))
+
+                    if #available(iOS 17.0, *) {
+                        Button(personalVoiceEnabled ? "Personal Voice access enabled ✓" : "Enable Personal Voice access") {
+                            VoiceDirector.shared.requestPersonalVoiceAccess { granted in
+                                personalVoiceEnabled = granted
+                                refreshVoices()
+                            }
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(theme.accent)
+                    }
+
+                    ForEach(appModel.availableCompanions) { companion in
+                        HStack(spacing: 10) {
+                            Text(companion.name)
+                                .font(.system(size: 17, weight: .bold, design: .rounded))
+                                .frame(width: 80, alignment: .leading)
+                            Picker("Voice for \(companion.name)", selection: voiceBinding(for: companion.id)) {
+                                Text("Automatic (best installed)").tag("")
+                                ForEach(availableVoiceIdentifiers, id: \.self) { identifier in
+                                    Text(voiceNames[identifier] ?? identifier).tag(identifier)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            .tint(theme.highlight)
+                            Spacer()
+                            Button("Hear") {
+                                let line = companion.speechStyle.catchphrases.first ?? companion.introduction
+                                appModel.narrator.speak("\(line)", voice: companion.resolvedVoice)
+                            }
+                            .buttonStyle(.bordered)
+                            .tint(theme.accent)
+                        }
+                    }
                 }
 
                 section("Companion AI (optional)", theme) {
@@ -182,6 +226,31 @@ struct SettingsView: View {
         }
         .background(theme.background.ignoresSafeArea())
         .foregroundColor(theme.text)
+        .onAppear {
+            refreshVoices()
+            for companion in appModel.availableCompanions {
+                voiceOverrides[companion.id] =
+                    VoiceDirector.shared.overrideIdentifier(for: companion.id) ?? ""
+            }
+        }
+    }
+
+    private func refreshVoices() {
+        let ranked = VoiceDirector.shared.rankedVoices()
+        availableVoiceIdentifiers = ranked.map(\.identifier)
+        voiceNames = Dictionary(uniqueKeysWithValues: ranked.map {
+            ($0.identifier, VoiceDirector.shared.displayName($0))
+        })
+    }
+
+    private func voiceBinding(for companionID: String) -> Binding<String> {
+        Binding(
+            get: { voiceOverrides[companionID] ?? "" },
+            set: { newValue in
+                voiceOverrides[companionID] = newValue
+                VoiceDirector.shared.setOverride(newValue.isEmpty ? nil : newValue,
+                                                 for: companionID)
+            })
     }
 
     private func section(_ title: String, _ theme: Theme,

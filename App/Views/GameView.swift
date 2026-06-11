@@ -20,15 +20,19 @@ struct GameView: View {
             VStack(spacing: 16) {
                 header(theme)
 
-                ScrollView {
-                    NarrationTextView(narrator: model.narrator, theme: theme)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(14)
+                HStack(alignment: .bottom, spacing: 14) {
+                    CompanionAvatarView(companion: model.companion, narrator: model.narrator,
+                                        size: theme.fontSize(110), theme: theme)
+                    ScrollView {
+                        NarrationTextView(narrator: model.narrator, theme: theme)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(14)
+                    }
+                    .background(
+                        RoundedRectangle(cornerRadius: 22)
+                            .fill(theme.background.opacity(0.82))
+                    )
                 }
-                .background(
-                    RoundedRectangle(cornerRadius: 22)
-                        .fill(theme.background.opacity(0.82))
-                )
                 .frame(maxHeight: .infinity)
 
                 if let nearby = model.nearbyEntity {
@@ -212,7 +216,7 @@ struct GameView: View {
         .onAppear {
             if let dialogue = model.currentDialogue {
                 model.narrator.speak(dialogue.line.resolved(for: model.companion.id),
-                                     voice: model.companion.voice)
+                                     voice: model.companion.resolvedVoice)
             }
         }
     }

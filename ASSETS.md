@@ -6,7 +6,8 @@ is intended to be open-sourced, so provenance must be airtight.
 
 | Asset | Type | Source | Author | License | Notes |
 |---|---|---|---|---|---|
-| Assets/Audio/*.wav (all 36 files) | audio | `Tools/generate_placeholder_audio.py` | this project (procedurally synthesized) | original work, CC0 | Placeholder pass — replace file-by-file per Assets/Audio/MANIFEST.md |
+| Assets/Audio/*.wav (all 41 files) | audio | `Tools/generate_placeholder_audio.py` | this project (procedurally synthesized) | original work, CC0 | Placeholder pass — replace file-by-file per Assets/Audio/MANIFEST.md |
+| Assets/Art/{ember,petal,clover}.png | image | _pending — provided by project owner_ | _fill in (note AI generator if used)_ | _fill in_ | Companion portraits; see Assets/Art/README.md |
 
 ## Rules
 
