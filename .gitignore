@@ -4,3 +4,4 @@ DerivedData/
 .build/
 *.xcodeproj
 .swiftpm/
+App/Info.plist
