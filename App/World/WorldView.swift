@@ -46,7 +46,7 @@ struct WorldView: UIViewRepresentable {
         private weak var arView: ARView?
         private var worldAnchor: AnchorEntity?
         private var camera: PerspectiveCamera?
-        private var entityNodes: [String: Entity] = [:]
+        private var entityNodes: [String: RealityKit.Entity] = [:]
         private var fireflies: [(entity: ModelEntity, phase: Float, radius: Float, center: SIMD3<Float>)] = []
         private var updateSubscription: Cancellable?
 

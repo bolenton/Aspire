@@ -50,8 +50,8 @@ enum WorldBuilder {
     /// One world object: the bold shape plus a soft additive halo shell.
     /// The halo radius carries the calibrated/adaptive glow boost.
     static func build(_ resolved: ResolvedEntity, companionName: String,
-                      glowBoost: Double) -> Entity {
-        let root = Entity()
+                      glowBoost: Double) -> RealityKit.Entity {
+        let root = RealityKit.Entity()
         let entity = resolved.entity
         root.position = SIMD3<Float>(Float(entity.position.x),
                                      Float(entity.position.y),
