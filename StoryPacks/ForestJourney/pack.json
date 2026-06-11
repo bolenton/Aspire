@@ -1,0 +1,444 @@
+{
+  "id": "forest_journey",
+  "title": "Forest Journey",
+  "version": 1,
+  "companionIDs": ["ember", "petal", "clover"],
+  "regions": [
+    {
+      "id": "whispering_forest",
+      "name": "Whispering Forest",
+      "difficultyTier": 1,
+      "newMechanic": "walk_and_listen",
+      "scenes": [
+        {
+          "id": "fox_hollow",
+          "name": "Fox Hollow",
+          "spokenDescription": {
+            "base": "A mossy clearing wrapped in tall whispering trees. Fireflies drift like tiny lanterns.",
+            "byCompanion": {
+              "ember": "A mossy clearing full of wonderful smells — moss, mushrooms, and maybe... biscuits? Fireflies drift like tiny lanterns.",
+              "petal": "A mossy clearing where the breeze spirals up and up. From above, the fireflies look like a river of stars.",
+              "clover": "A soft, mossy clearing. So many gentle sounds live here — listen, you can hear the trees breathing."
+            }
+          },
+          "ambience": [
+            {
+              "asset": "wind_leaves_loop.caf",
+              "loops": true,
+              "volume": 0.6,
+              "nearRadius": 1.0,
+              "farRadius": 1000.0,
+              "spokenDescription": "wind in the leaves"
+            },
+            {
+              "asset": "crickets_loop.caf",
+              "loops": true,
+              "volume": 0.45,
+              "nearRadius": 1.0,
+              "farRadius": 1000.0,
+              "spokenDescription": "crickets singing"
+            }
+          ],
+          "entities": [
+            {
+              "id": "@companion",
+              "kind": "companion",
+              "name": "your companion",
+              "position": { "x": 1.5, "y": 0, "z": -3 },
+              "sound": {
+                "asset": "companion_call.caf",
+                "loops": true,
+                "volume": 1.0,
+                "nearRadius": 0.5,
+                "farRadius": 60.0,
+                "spokenDescription": "your friend's voice"
+              },
+              "visual": { "shape": "sphere", "colorHex": "#FFB347", "scale": 1.4, "glow": 1.6 },
+              "dialogueID": "d_intro"
+            },
+            {
+              "id": "river",
+              "kind": "landmark",
+              "name": "river",
+              "position": { "x": 14, "y": 0, "z": 2 },
+              "sound": {
+                "asset": "river_loop.caf",
+                "loops": true,
+                "volume": 0.9,
+                "nearRadius": 2.0,
+                "farRadius": 35.0,
+                "spokenDescription": "flowing water"
+              },
+              "visual": { "shape": "ribbon", "colorHex": "#58C8F0", "scale": 3.0, "glow": 1.2 }
+            },
+            {
+              "id": "old_oak",
+              "kind": "character",
+              "name": "old oak",
+              "position": { "x": 0, "y": 0, "z": -14 },
+              "sound": {
+                "asset": "oak_creak_loop.caf",
+                "loops": true,
+                "volume": 0.8,
+                "nearRadius": 1.5,
+                "farRadius": 18.0,
+                "spokenDescription": "deep creaking wood"
+              },
+              "visual": { "shape": "tree", "colorHex": "#9B6B43", "scale": 4.0, "glow": 1.0 }
+            },
+            {
+              "id": "glowing_acorn",
+              "kind": "item",
+              "name": "glowing acorn",
+              "position": { "x": 1.5, "y": 0, "z": -15 },
+              "sound": {
+                "asset": "acorn_chime_loop.caf",
+                "loops": true,
+                "volume": 0.5,
+                "nearRadius": 0.5,
+                "farRadius": 10.0,
+                "spokenDescription": "a tiny silver chime"
+              },
+              "visual": { "shape": "sphere", "colorHex": "#FFD24A", "scale": 0.8, "glow": 2.0 },
+              "requiresFlag": "oak_awake",
+              "lockedExplanation": {
+                "base": "The acorn is still asleep, high in the branches. If we sing the oak's waking song, it will hand it down to us.",
+                "byCompanion": {
+                  "ember": "The acorn is snoozing up in the branches — even my nose can't reach that high! Let's sing the oak's waking song. Yip!",
+                  "petal": "The acorn is dreaming up in the branches... I flew past it! Sing the oak's waking song and it will drift down to us.",
+                  "clover": "Shh... the acorn is sleeping up in the branches. If we sing the waking song very nicely, the oak will hand it down."
+                }
+              }
+            },
+            {
+              "id": "broken_bridge",
+              "kind": "landmark",
+              "name": "broken bridge",
+              "position": { "x": -11, "y": 0, "z": -4 },
+              "sound": {
+                "asset": "bridge_creak_loop.caf",
+                "loops": true,
+                "volume": 0.5,
+                "nearRadius": 1.0,
+                "farRadius": 14.0,
+                "spokenDescription": "wood creaking over water"
+              },
+              "visual": { "shape": "arch", "colorHex": "#8A7B6B", "scale": 2.0, "glow": 0.8 }
+            },
+            {
+              "id": "castle_gate",
+              "kind": "portal",
+              "name": "castle gate",
+              "position": { "x": -17, "y": 0, "z": -8 },
+              "visual": { "shape": "door", "colorHex": "#B48CF2", "scale": 3.0, "glow": 1.4 },
+              "requiresFlag": "bridge_repaired",
+              "lockedExplanation": {
+                "base": "We can go to the castle someday — but the bridge is still broken.",
+                "byCompanion": {
+                  "ember": "The castle? Ooh, I can smell its banners from here! But the bridge is still broken. One day, yip!",
+                  "petal": "The castle towers look lovely from up high... but the bridge is still broken, so our feet must wait.",
+                  "clover": "I can hear the castle flags flapping, far away... but the bridge is still broken. Someday soon."
+                }
+              }
+            },
+            {
+              "id": "buried_treat",
+              "kind": "item",
+              "name": "buried honey biscuit",
+              "position": { "x": 4, "y": 0, "z": -7 },
+              "requiresAbility": "keen_smell",
+              "senseLine": {
+                "base": "My nose found something buried near the big root!",
+                "byCompanion": {
+                  "ember": "Sniff sniff — YIP! Something delicious is buried near the big root. Foxes first!"
+                }
+              },
+              "hiddenTease": "Something is tucked away near the big root, but I can't tell what it is.",
+              "visual": { "shape": "mound", "colorHex": "#E8A33D", "scale": 0.7, "glow": 1.5 }
+            },
+            {
+              "id": "high_nest",
+              "kind": "item",
+              "name": "songbird nest",
+              "position": { "x": 6, "y": 5, "z": -10 },
+              "sound": {
+                "asset": "chicks_quiet_loop.caf",
+                "loops": true,
+                "volume": 0.35,
+                "nearRadius": 0.5,
+                "farRadius": 7.0,
+                "spokenDescription": "tiny sleepy chirps"
+              },
+              "requiresAbility": "high_flight",
+              "senseLine": {
+                "base": "I can see a cozy nest up in the branches — with three sleepy chicks inside!",
+                "byCompanion": {
+                  "petal": "Ooh... up in the branches, a cozy nest with three sleepy chicks. The sky always knows!"
+                }
+              },
+              "hiddenTease": "Something rustles way up in the branches, but it's too high for me to tell.",
+              "visual": { "shape": "nest", "colorHex": "#C9E265", "scale": 1.0, "glow": 1.5 }
+            },
+            {
+              "id": "hidden_stream",
+              "kind": "landmark",
+              "name": "hidden stream",
+              "position": { "x": -7, "y": -1, "z": 5 },
+              "sound": {
+                "asset": "stream_quiet_loop.caf",
+                "loops": true,
+                "volume": 0.4,
+                "nearRadius": 0.5,
+                "farRadius": 9.0,
+                "spokenDescription": "a tiny trickle of water"
+              },
+              "requiresAbility": "super_hearing",
+              "senseLine": {
+                "base": "My ears hear water murmuring under the ground — a secret stream!",
+                "byCompanion": {
+                  "clover": "Oh my... do you feel that? Water is whispering under the ground. A secret stream, just for us."
+                }
+              },
+              "hiddenTease": "I keep feeling like something is murmuring nearby, but it's too quiet for me.",
+              "visual": { "shape": "ribbon", "colorHex": "#7FE2D4", "scale": 1.5, "glow": 1.5 }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "quests": [
+    {
+      "id": "glowing_acorn_quest",
+      "title": "The Glowing Acorn",
+      "spokenSummary": {
+        "base": "The old oak lost its glowing acorn. We promised to wake the oak with its favorite song and bring the acorn home.",
+        "byCompanion": {
+          "ember": "Yip! The old oak lost its glowing acorn. We promised to sing the oak awake and sniff that acorn home!",
+          "petal": "The old oak is dreaming about its lost glowing acorn... we promised to wake it gently with its favorite song.",
+          "clover": "The old oak misses its glowing acorn. We promised — very quietly — to sing it awake and bring the acorn home."
+        }
+      },
+      "steps": [
+        {
+          "id": "find_friend",
+          "goal": "reach",
+          "targetEntityID": "@companion",
+          "intro": "Someone is calling for you in Fox Hollow. Follow the friendly voice!",
+          "celebration": {
+            "base": "You found your friend! This is the start of something wonderful.",
+            "byCompanion": {
+              "ember": "Yip yip! You found me! This is the start of something wonderful!",
+              "petal": "Ooh, there you are! Like two clouds finding each other.",
+              "clover": "Oh my... you found me. I'm so glad it's you."
+            }
+          },
+          "hintLadder": [
+            "Listen for the voice that's calling you.",
+            "The friendly voice is close. Walk toward it and it will get louder.",
+            "Walk straight toward the calling voice, just ahead of you. A few steps and you're there."
+          ]
+        },
+        {
+          "id": "say_hello",
+          "goal": "talk",
+          "targetEntityID": "@companion",
+          "intro": "Say hello to your new friend!",
+          "celebration": "A friendship like this only comes along once in a forest.",
+          "hintLadder": [
+            "Your friend is waiting to chat.",
+            "Tap your friend to say hello.",
+            "Tap the glowing friend right in front of you to start talking."
+          ]
+        },
+        {
+          "id": "reach_oak",
+          "goal": "reach",
+          "targetEntityID": "old_oak",
+          "intro": {
+            "base": "The old oak is the deep creaking sound. Let's go say hello.",
+            "byCompanion": {
+              "ember": "The old oak smells like rain and storybooks. Follow the creaking, yip!",
+              "petal": "The old oak is the tallest dream in this forest. Follow the slow creaking sound.",
+              "clover": "Hear that slow, deep creaking? That's the old oak breathing. Let's walk to it together."
+            }
+          },
+          "celebration": "You found the old oak! Its branches stretch over you like a roof of stars.",
+          "hintLadder": [
+            "The oak is the slow, creaky sound.",
+            "Follow the deep creaking wood — that's the old oak.",
+            "Turn until the creaking is straight ahead, then walk. The old oak is waiting."
+          ]
+        },
+        {
+          "id": "wake_oak",
+          "goal": "song",
+          "targetEntityID": "old_oak",
+          "songSpellID": "oak_song",
+          "intro": {
+            "base": "The oak is sleeping. Listen to its waking song, then sing it back: Do, Re, Mi!",
+            "byCompanion": {
+              "ember": "The oak snores louder than me! Listen to its waking song, then sing it back: Do, Re, Mi — yip!",
+              "petal": "Shh... the oak is dreaming. Listen to its waking song, then sing it back softly: Do, Re, Mi.",
+              "clover": "The oak is deep asleep. Listen very carefully to its song, then we'll sing it back together: Do, Re, Mi."
+            }
+          },
+          "celebration": "The old oak stretches its branches awake! Leaves shiver with happiness all around you.",
+          "hintLadder": [
+            "Listen to the notes first, then copy them.",
+            "The song goes low to high: Do, then Re, then Mi.",
+            "Tap the three notes in order: Do, Re, Mi. Take your time — the oak loves to listen."
+          ],
+          "setsFlag": "oak_awake"
+        },
+        {
+          "id": "take_acorn",
+          "goal": "collect",
+          "targetEntityID": "glowing_acorn",
+          "intro": "The oak hands down its glowing acorn — it chimes like a tiny bell. Go collect it!",
+          "celebration": {
+            "base": "You did it! The glowing acorn is safe, and the whole forest hums a thank-you.",
+            "byCompanion": {
+              "ember": "YIP YIP YIP! The glowing acorn is ours — I mean, the oak's! The whole forest is cheering for you!",
+              "petal": "Ooh... the acorn glows like a baby star. The whole forest hums a thank-you, one wingbeat at a time.",
+              "clover": "You did it... you really did it. Can you hear the whole forest humming thank-you? That's for you."
+            }
+          },
+          "hintLadder": [
+            "Follow the tiny chime.",
+            "The chiming acorn is very close to the oak's roots.",
+            "The acorn is right beside the oak, one step away. Follow the silver chime."
+          ],
+          "setsFlag": "acorn_found"
+        }
+      ]
+    },
+    {
+      "id": "ember_treat_quest",
+      "title": "The Buried Biscuit",
+      "requiresCompanion": "ember",
+      "requiresFlag": "acorn_found",
+      "spokenSummary": "My nose found a honey biscuit buried near the big root. A hero's snack for a hero's day!",
+      "steps": [
+        {
+          "id": "dig_treat",
+          "goal": "collect",
+          "targetEntityID": "buried_treat",
+          "intro": "Follow my sniffing — the biscuit is buried near the big root!",
+          "celebration": "A honey biscuit! Half for you, half for me. Okay... maybe a bit more than half for me. Yip!",
+          "hintLadder": [
+            "Follow my sniffing sounds.",
+            "The big root is ahead on your right, a short walk away.",
+            "Walk ahead and right until you hear me digging — the biscuit is right there."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "petal_nest_quest",
+      "title": "Three Sleepy Chicks",
+      "requiresCompanion": "petal",
+      "requiresFlag": "acorn_found",
+      "spokenSummary": "I spotted a nest up in the branches with three sleepy chicks. Let's go stand beneath it and listen to them dream.",
+      "steps": [
+        {
+          "id": "visit_nest",
+          "goal": "reach",
+          "targetEntityID": "high_nest",
+          "intro": "The nest is up high, ahead on your right. Stand beneath it, very gently.",
+          "celebration": "Tiny chirps, like little bells... they're dreaming about flying. Just like I dream about you, friend.",
+          "hintLadder": [
+            "Listen up high for tiny chirps.",
+            "Walk ahead and to your right until the sleepy chirps are right above you.",
+            "Stand right under the branches ahead-right — when the chirps are overhead, you're there."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "clover_stream_quest",
+      "title": "The Secret Stream",
+      "requiresCompanion": "clover",
+      "requiresFlag": "acorn_found",
+      "spokenSummary": "My ears found a secret stream whispering under the ground. Want to go listen to it with me?",
+      "steps": [
+        {
+          "id": "visit_stream",
+          "goal": "reach",
+          "targetEntityID": "hidden_stream",
+          "intro": "The secret stream is behind us, down low. Walk softly and listen.",
+          "celebration": "There... water singing under the earth. Nobody else in the whole forest knows this song. Just us.",
+          "hintLadder": [
+            "Turn around and listen for the tiniest trickle.",
+            "The stream whispers behind you, to the left, down low.",
+            "Turn all the way around and walk — when the trickle is loudest, kneel down. That's our stream."
+          ]
+        }
+      ]
+    }
+  ],
+  "dialogues": [
+    {
+      "id": "d_intro",
+      "speaker": "@companion",
+      "line": {
+        "base": "There you are! I've been waiting for you. The old oak needs our help — are you ready for an adventure?",
+        "byCompanion": {
+          "ember": "There you are! Yip! I smelled you coming from across the hollow — you smell like adventure! The old oak needs our help. Ready?",
+          "petal": "Ooh, there you are... I watched you walk in from way up high. The old oak needs our help. Shall we have an adventure, you and I?",
+          "clover": "Oh! There you are... I heard your footsteps from across the hollow. The old oak needs our help. Will you come with me?"
+        }
+      },
+      "choices": [
+        {
+          "id": "c_brave",
+          "text": "Yes! Let's go right now!",
+          "nextDialogueID": "d_intro_brave",
+          "memoryKey": "adventure_spirit",
+          "memoryValue": "brave"
+        },
+        {
+          "id": "c_careful",
+          "text": "I'm a little nervous...",
+          "nextDialogueID": "d_intro_careful",
+          "memoryKey": "adventure_spirit",
+          "memoryValue": "careful"
+        }
+      ]
+    },
+    {
+      "id": "d_intro_brave",
+      "speaker": "@companion",
+      "line": {
+        "base": "That's the spirit! Stay close to me and follow the sounds — the forest will show us the way.",
+        "byCompanion": {
+          "ember": "YIP! That's the spirit! Stick with me, brave one — foxes first, adventure always!",
+          "petal": "Ooh, how wonderful! Then let's drift toward the old oak — one wingbeat at a time.",
+          "clover": "Really? You're so brave... okay! I'll stay right beside you the whole way."
+        }
+      },
+      "choices": []
+    },
+    {
+      "id": "d_intro_careful",
+      "speaker": "@companion",
+      "line": {
+        "base": "That's okay — being careful is a kind of brave too. We'll go slowly, and I'll stay right beside you.",
+        "byCompanion": {
+          "ember": "Hey, that's okay! Even foxes get whisker-wobbles. We'll go slow, and I'll be your nose AND your courage. Yip.",
+          "petal": "That's alright, little cloud... nervous wings still fly. We'll go gently, you and I.",
+          "clover": "Me too, actually... but quiet things are brave too. We'll be nervous together — and that's almost the same as brave."
+        }
+      },
+      "choices": []
+    }
+  ],
+  "songSpells": [
+    {
+      "id": "oak_song",
+      "name": "The Oak's Waking Song",
+      "notes": ["do", "re", "mi"],
+      "tempo": 90
+    }
+  ]
+}

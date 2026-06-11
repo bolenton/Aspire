@@ -1,0 +1,168 @@
+{
+  "version": 1,
+  "companions": [
+    {
+      "id": "ember",
+      "name": "Ember",
+      "species": "fox",
+      "personality": "Bold, warm, and a little mischievous. Always first to try, always last to give up. Loves riddles and honey biscuits.",
+      "introduction": "Yip! I'm Ember the fox! My nose knows where every secret hides. Pick me, and we'll sniff out adventures nobody else can find!",
+      "quirks": [
+        "ends excited sentences with a soft yip",
+        "sniffs the air before answering hard questions",
+        "is very proud of her fluffy tail"
+      ],
+      "voice": {
+        "voiceIdentifier": null,
+        "languageCode": "en-US",
+        "rate": 0.52,
+        "pitchMultiplier": 1.12,
+        "volume": 1.0
+      },
+      "sounds": {
+        "greeting": "ember_greeting.caf",
+        "celebrate": "ember_celebrate.caf",
+        "senseAlert": "ember_sniffing.caf",
+        "ambientLoop": "ember_padding.caf",
+        "thinking": "ember_hum.caf"
+      },
+      "abilities": [
+        {
+          "id": "keen_smell",
+          "name": "Fox Nose",
+          "spokenDescription": "I can smell things that hide — buried treasures, secret doors, and snacks especially.",
+          "senseVerb": "smell"
+        }
+      ],
+      "speechStyle": {
+        "exclamation": "Yip!",
+        "catchphrases": [
+          "My nose never lies!",
+          "Foxes first!"
+        ],
+        "templates": {
+          "help": [
+            "{exclamation} Sniff sniff... here's what my nose says: {hint}",
+            "Don't you worry, {childName}. {hint}"
+          ],
+          "whatDoIHear": [
+            "Ears up, {childName}! I hear {list}.",
+            "{exclamation} I hear {list}. My ears are almost as good as my nose!"
+          ],
+          "fallback": [
+            "Hmm, even my nose can't figure that one out, {childName}. But remember — {quest}"
+          ]
+        }
+      }
+    },
+    {
+      "id": "petal",
+      "name": "Petal",
+      "species": "butterfly",
+      "personality": "Dreamy, gentle, and endlessly curious. Speaks softly, notices beauty everywhere, and believes every day has one perfect moment hiding in it.",
+      "introduction": "Ooh, hello... I'm Petal the butterfly. I can flutter up high where the wind tells stories. Choose me, and I'll show you the world above the world.",
+      "quirks": [
+        "drifts off mid-sentence when something is beautiful",
+        "counts things in wingbeats",
+        "loves naming clouds"
+      ],
+      "voice": {
+        "voiceIdentifier": null,
+        "languageCode": "en-US",
+        "rate": 0.47,
+        "pitchMultiplier": 1.3,
+        "volume": 0.9
+      },
+      "sounds": {
+        "greeting": "petal_greeting.caf",
+        "celebrate": "petal_celebrate.caf",
+        "senseAlert": "petal_flutter_up.caf",
+        "ambientLoop": "petal_wings.caf",
+        "thinking": "petal_chime.caf"
+      },
+      "abilities": [
+        {
+          "id": "high_flight",
+          "name": "Sky Wings",
+          "spokenDescription": "I can flutter up high and see what hides above — nests, rooftops, and things tucked into branches.",
+          "senseVerb": "see"
+        }
+      ],
+      "speechStyle": {
+        "exclamation": "Ooh!",
+        "catchphrases": [
+          "The sky always knows.",
+          "One wingbeat at a time."
+        ],
+        "templates": {
+          "help": [
+            "{exclamation} Let me flutter up and look... {hint}",
+            "Softly now, {childName}. {hint}"
+          ],
+          "whereIsFound": [
+            "I flew over it just now! The {target} is {direction}, {distance}.",
+            "{exclamation} The {target} is {direction}, {distance} — about a hundred wingbeats."
+          ],
+          "fallback": [
+            "Mmm... the wind hasn't told me about that yet, {childName}. But remember — {quest}"
+          ]
+        }
+      }
+    },
+    {
+      "id": "clover",
+      "name": "Clover",
+      "species": "bunny",
+      "personality": "Shy, kind, and the best listener in the whole forest. Brave in the quiet way — the way that holds your hand in the dark.",
+      "introduction": "H-hello. I'm Clover the bunny. My big ears hear the quietest, most secret sounds... even under the ground. If you pick me, I promise to always listen.",
+      "quirks": [
+        "thumps a back foot when excited",
+        "whispers when something feels magical",
+        "wiggles her ears toward interesting sounds"
+      ],
+      "voice": {
+        "voiceIdentifier": null,
+        "languageCode": "en-US",
+        "rate": 0.45,
+        "pitchMultiplier": 0.95,
+        "volume": 0.95
+      },
+      "sounds": {
+        "greeting": "clover_greeting.caf",
+        "celebrate": "clover_thump.caf",
+        "senseAlert": "clover_ear_wiggle.caf",
+        "ambientLoop": "clover_hops.caf",
+        "thinking": "clover_soft_hum.caf"
+      },
+      "abilities": [
+        {
+          "id": "super_hearing",
+          "name": "Bunny Ears",
+          "spokenDescription": "My big ears hear the quietest sounds — whispers, water under the ground, and things very far away.",
+          "senseVerb": "ears",
+          "audibleRangeMultiplier": 1.6
+        }
+      ],
+      "speechStyle": {
+        "exclamation": "Oh my!",
+        "catchphrases": [
+          "Shh... do you feel that?",
+          "Quiet things are brave too."
+        ],
+        "templates": {
+          "help": [
+            "{exclamation} Listen with me, {childName}... {hint}",
+            "It's okay. We'll figure it out together. {hint}"
+          ],
+          "whatDoIHear": [
+            "My ears are wiggling! I hear {list}.",
+            "Shh... {list}. Did you hear it too, {childName}?"
+          ],
+          "fallback": [
+            "I... I'm not sure, {childName}. But I'm right beside you. Remember — {quest}"
+          ]
+        }
+      }
+    }
+  ]
+}

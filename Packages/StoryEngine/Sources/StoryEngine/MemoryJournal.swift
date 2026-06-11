@@ -11,17 +11,23 @@ public struct MemoryEvent: Codable, Equatable, Sendable {
     public var value: String
     /// How the companion phrases it later: "Last time you helped the fisherman."
     public var spokenRecap: String
+    /// Which companion the memory was made with — stored now so a later
+    /// "the companions know each other" upgrade is phrasing-only.
+    public var companionID: String?
 
-    public init(date: Date = Date(), kind: MemoryKind, key: String, value: String, spokenRecap: String) {
+    public init(date: Date = Date(), kind: MemoryKind, key: String, value: String,
+                spokenRecap: String, companionID: String? = nil) {
         self.date = date
         self.kind = kind
         self.key = key
         self.value = value
         self.spokenRecap = spokenRecap
+        self.companionID = companionID
     }
 }
 
-/// Everything the companion remembers about her, across sessions.
+/// Everything a companion remembers about her. Slot journals hold playthrough
+/// memories; the vault's shared journal holds child-level facts (favorites).
 public struct MemoryJournal: Codable, Equatable, Sendable {
     public private(set) var events: [MemoryEvent]
 

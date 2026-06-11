@@ -2,47 +2,125 @@ import Foundation
 
 /// Deterministic fallback so the game is fully playable with no AI configured
 /// at all — on a plane, on a school iPad, before any model is set up.
-/// Every LLM provider is strictly an upgrade on top of this.
+/// Every LLM provider is strictly an upgrade on top of this. Answers come
+/// from the world snapshot, so they are situationally aware: directions,
+/// distances, locked reasons, and ability findings are all real.
 public struct ScriptedBrain: CompanionBrain {
     public init() {}
 
     public func reply(to utterance: String, context: CompanionContext) async throws -> String {
-        let question = utterance.lowercased()
+        answer(utterance, context: context)
+    }
 
-        if question.contains("who are you") || question.contains("your name") {
-            return "I'm \(context.companion.name), your \(context.companion.species)! I go where you go, \(context.childName)."
-        }
-        if question.contains("where am i") || question.contains("where are we") {
-            return context.sceneDescription
-        }
-        if question.contains("remember") || question.contains("last time") {
+    /// Synchronous core — also used by the freeze-and-explain overlay and
+    /// anywhere an instant reply is needed.
+    public func answer(_ utterance: String, context: CompanionContext) -> String {
+        let companion = context.companion
+        let snapshot = context.snapshot
+        let intent = IntentClassifier.classify(utterance, companion: companion, snapshot: snapshot)
+        var subs: [String: String] = ["childName": context.childName]
+        let key: String
+
+        switch intent {
+        case .whoAreYou:
+            subs["abilityDescription"] = companion.abilities.first?.spokenDescription ?? ""
+            key = "whoAreYou"
+
+        case .whereAmI:
+            subs["scene"] = snapshot.sceneName
+            subs["sceneDescription"] = snapshot.sceneDescription
+            key = "whereAmI"
+
+        case .whatDoIHear:
+            let audible = snapshot.perceived.filter { $0.isAudible && !$0.isAnonymousTease }.prefix(4)
+            let described = audible.compactMap { entity -> String? in
+                guard let sound = entity.soundDescription else { return nil }
+                return "\(sound) \(entity.direction.spoken)"
+            }
+            if described.isEmpty {
+                subs["ambient"] = snapshot.ambientSounds.isEmpty
+                    ? "the quiet" : snapshot.ambientSounds.joined(separator: " and ")
+                key = "whatDoIHearQuiet"
+            } else {
+                subs["list"] = joinSpoken(described)
+                key = "whatDoIHear"
+            }
+
+        case .whereIs(let name), .canIGo(let name):
+            let isGo = { if case .canIGo = intent { return true } else { return false } }()
+            if let entity = snapshot.perceived.first(where: { $0.name == name && !name.isEmpty }) {
+                subs["target"] = entity.name
+                subs["direction"] = entity.direction.spoken
+                subs["distance"] = entity.spokenDistance
+                if entity.isLocked, let reason = entity.lockedExplanation {
+                    subs["reason"] = reason
+                    key = isGo ? "canIGoLocked" : "whereIsLocked"
+                } else {
+                    key = isGo ? "canIGoOpen" : "whereIsFound"
+                }
+            } else {
+                key = isGo ? "canIGoUnknown" : "whereIsUnknown"
+            }
+
+        case .whatDoIDo:
+            if let quest = snapshot.activeQuest {
+                subs["quest"] = quest.summary
+                key = "whatDoIDo"
+            } else {
+                key = "whatDoIDoNoQuest"
+            }
+
+        case .help:
+            if let hint = snapshot.activeQuest?.currentHint {
+                subs["hint"] = hint
+                key = "help"
+            } else {
+                key = "helpNoHint"
+            }
+
+        case .remember:
             if let memory = context.recentMemories.first {
-                return "\(memory) I remember it well, \(context.childName)."
+                subs["memory"] = memory
+                key = "remember"
+            } else {
+                key = "rememberNone"
             }
-            return "Our adventure is just beginning, \(context.childName). Soon we'll have so much to remember!"
-        }
-        if question.contains("what") && (question.contains("do") || question.contains("supposed")) {
-            if let quest = context.questSummary {
-                return quest
+
+        case .whatHappened:
+            if snapshot.recentEvents.isEmpty {
+                key = "whatHappenedNone"
+            } else {
+                subs["events"] = joinSpoken(Array(snapshot.recentEvents.prefix(3)))
+                key = "whatHappened"
             }
-            return "Right now we're just exploring, \(context.childName). Follow any sound that makes you curious!"
-        }
-        if question.contains("help") || question.contains("stuck") || question.contains("hint") {
-            if let hint = context.currentHint {
-                return hint
+
+        case .abilitySense:
+            if snapshot.abilityFindings.isEmpty {
+                subs["abilityName"] = companion.abilities.first?.name ?? "special sense"
+                key = "abilitySenseNone"
+            } else {
+                subs["findings"] = snapshot.abilityFindings.joined(separator: " ")
+                key = "abilitySense"
             }
-            return "Stop and listen for a moment, \(context.childName). The world will tell you where to go."
-        }
-        if question.contains("can i go") || question.contains("can we go") {
-            if let locked = context.lockedExplanations.first {
-                return locked
+
+        case .fallback:
+            if let quest = snapshot.activeQuest {
+                subs["quest"] = quest.summary
+                key = "fallback"
+            } else {
+                key = "fallbackNoQuest"
             }
-            return "We can try! Follow the sounds and I'll stay right beside you."
         }
 
-        if let quest = context.questSummary {
-            return "Hmm, I'm not sure about that one, \(context.childName). But remember — \(quest)"
+        return TemplateRenderer.render(intentKey: key, utterance: utterance,
+                                       companion: companion, substitutions: subs)
+    }
+
+    private func joinSpoken(_ items: [String]) -> String {
+        switch items.count {
+        case 0: return ""
+        case 1: return items[0]
+        default: return items.dropLast().joined(separator: ", ") + ", and " + items[items.count - 1]
         }
-        return "Let's keep exploring, \(context.childName). I'm right here with you."
     }
 }

@@ -5,25 +5,23 @@ import Foundation
 public struct CompanionContext: Sendable {
     public var companion: Companion
     public var childName: String
-    public var sceneDescription: String
-    public var questSummary: String?
-    public var currentHint: String?
-    public var lockedExplanations: [String]
+    public var snapshot: WorldSnapshot
     public var recentMemories: [String]
-    public var support: SupportLevel
 
-    public init(companion: Companion, childName: String, sceneDescription: String,
-                questSummary: String? = nil, currentHint: String? = nil,
-                lockedExplanations: [String] = [], recentMemories: [String] = [],
-                support: SupportLevel = .standard) {
+    public init(companion: Companion, childName: String, snapshot: WorldSnapshot,
+                recentMemories: [String] = []) {
         self.companion = companion
         self.childName = childName
-        self.sceneDescription = sceneDescription
-        self.questSummary = questSummary
-        self.currentHint = currentHint
-        self.lockedExplanations = lockedExplanations
+        self.snapshot = snapshot
         self.recentMemories = recentMemories
-        self.support = support
+    }
+
+    public var sceneDescription: String { snapshot.sceneDescription }
+    public var questSummary: String? { snapshot.activeQuest?.summary }
+    public var currentHint: String? { snapshot.activeQuest?.currentHint }
+    public var support: SupportLevel { snapshot.support }
+    public var lockedExplanations: [String] {
+        snapshot.perceived.compactMap { $0.isLocked ? $0.lockedExplanation : nil }
     }
 }
 
@@ -38,28 +36,50 @@ public protocol CompanionBrain: Sendable {
 /// The safety contract for every LLM-backed brain, in one place.
 public enum PromptBuilder {
     public static func systemPrompt(for context: CompanionContext) -> String {
+        let companion = context.companion
         var lines: [String] = []
-        lines.append("You are \(context.companion.name), a \(context.companion.species) companion in a gentle audio adventure for a child.")
-        lines.append("Personality: \(context.companion.personality)")
+        lines.append("You are \(companion.name), a \(companion.species) companion in a gentle audio adventure for a child.")
+        lines.append("Personality: \(companion.personality)")
+        if !companion.quirks.isEmpty {
+            lines.append("Your quirks: " + companion.quirks.joined(separator: "; "))
+        }
+        if !companion.speechStyle.catchphrases.isEmpty {
+            lines.append("You sometimes say: " + companion.speechStyle.catchphrases.joined(separator: " / "))
+        }
+        for ability in companion.abilities {
+            lines.append("You have a special sense: \(ability.name) — \(ability.spokenDescription)")
+        }
         lines.append("The child's name is \(context.childName). She is nine years old and visually impaired; the game world reaches her mostly through sound.")
         lines.append("")
         lines.append("Rules you must always follow:")
-        lines.append("- Stay in character as \(context.companion.name). Never mention being an AI, a model, or a game.")
+        lines.append("- Stay in character as \(companion.name). Never mention being an AI, a model, or a game.")
         lines.append("- Speak in short, warm sentences that sound good read aloud. Two or three sentences at most.")
-        lines.append("- Only talk about people, places, and things listed below. If asked about anything else in the world, say you have not discovered it yet and gently return to the quest.")
+        lines.append("- Only talk about the people, places, and things listed below. Describe where things are using EXACTLY the directions and distances given — never invent places, directions, or distances.")
+        lines.append("- If she asks about something not listed, say you can't hear or sense it from here, and gently suggest exploring or returning to the quest.")
         lines.append("- Never frighten, shame, or punish. Mistakes are part of exploring.")
-        lines.append("- If she sounds stuck or upset, give the current hint.")
+        lines.append("- If she sounds stuck or upset, give the hint below.")
         lines.append("- If she asks something unrelated to the story (homework, the real world), answer kindly in one sentence, then return to the adventure.")
         lines.append("")
-        lines.append("Where you both are: \(context.sceneDescription)")
-        if let quest = context.questSummary {
-            lines.append("Current quest: \(quest)")
+        lines.append("Where you both are: \(context.snapshot.sceneName). \(context.snapshot.sceneDescription)")
+        if !context.snapshot.ambientSounds.isEmpty {
+            lines.append("All around, you can hear: " + context.snapshot.ambientSounds.joined(separator: ", ") + ".")
         }
-        if let hint = context.currentHint {
-            lines.append("Hint you may give if she needs help: \(hint)")
+        if !context.snapshot.perceived.isEmpty {
+            lines.append("What you can both perceive right now (mention ONLY these):")
+            for entity in context.snapshot.perceived {
+                lines.append(SnapshotPhrasing.promptLine(for: entity))
+            }
         }
-        if !context.lockedExplanations.isEmpty {
-            lines.append("Places that are not reachable yet, and why: " + context.lockedExplanations.joined(separator: " | "))
+        if !context.snapshot.abilityFindings.isEmpty {
+            lines.append("Your special sense has found: " + context.snapshot.abilityFindings.joined(separator: " | "))
+        }
+        if !context.snapshot.recentEvents.isEmpty {
+            lines.append("Just happened: " + context.snapshot.recentEvents.joined(separator: " | "))
+        }
+        if let quest = context.snapshot.activeQuest {
+            lines.append("Current quest: \(quest.summary)")
+            lines.append("This step: \(quest.stepIntro)")
+            lines.append("Hint you may give if she needs help: \(quest.currentHint)")
         }
         if !context.recentMemories.isEmpty {
             lines.append("Things you remember about your adventures together: " + context.recentMemories.joined(separator: " | "))
