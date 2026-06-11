@@ -74,25 +74,32 @@ final class GameViewModel: ObservableObject {
             self?.headYawDegrees = yaw
             self?.pushListener()
         }
-        if let scene {
-            audio.loadScene(scene, resolved: resolvedEntities)
-            audio.updateListener(pose: pose)
-            events.record(GameEvent(tick: tick, kind: .sceneEntered,
-                                    spoken: "You stepped into \(scene.name)."))
-            var opening = scene.spokenDescription.resolved(for: companion.id)
-            let findings = snapshot().abilityFindings
-            if !findings.isEmpty {
-                SoundBank.shared.playCue("senseAlert", companion: companion)
-            }
-            for finding in findings {
-                opening += " \(finding)"
-            }
-            if let step = currentStep {
-                opening += " \(step.intro.resolved(for: companion.id))"
-            }
-            narrator.speak(opening, voice: companion.voice)
-        }
+        enterScene()
         stepStartedAt = Date()
+    }
+
+    /// Arrival in a scene — on game start and every portal crossing.
+    private func enterScene() {
+        guard let scene else { return }
+        pose = PlayerPose()
+        headTracker.recenter()
+        audio.loadScene(scene, resolved: resolvedEntities)
+        pushListener()
+        worldRevision += 1
+        events.record(GameEvent(tick: tick, kind: .sceneEntered,
+                                spoken: "You stepped into \(scene.name)."))
+        var opening = scene.spokenDescription.resolved(for: companion.id)
+        let findings = snapshot().abilityFindings
+        if !findings.isEmpty {
+            SoundBank.shared.playCue("senseAlert", companion: companion)
+        }
+        for finding in findings {
+            opening += " \(finding)"
+        }
+        if let step = currentStep {
+            opening += " \(step.intro.resolved(for: companion.id))"
+        }
+        narrator.speak(opening, voice: companion.voice)
     }
 
     func end() {
@@ -181,6 +188,13 @@ final class GameViewModel: ObservableObject {
             if let explanation = availability.explanation {
                 narrator.speak(explanation, voice: companion.voice)
             }
+            return
+        }
+
+        if entity.kind == .portal, slot.progress.travel(through: entity) != nil {
+            narrator.stop()
+            enterScene()
+            persist()
             return
         }
 

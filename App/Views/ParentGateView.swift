@@ -79,6 +79,9 @@ struct SettingsView: View {
     @AppStorage("brain.endpoint") private var brainEndpoint = ""
     @AppStorage("brain.model") private var brainModel = ""
     @AppStorage("brain.apiKey") private var brainAPIKey = ""
+    @AppStorage("brain.provider") private var brainProviderRaw = BrainProviderChoice.auto.rawValue
+    @State private var brainTestResult: String?
+    @State private var testingBrain = false
 
     var body: some View {
         let theme = appModel.theme
@@ -113,9 +116,21 @@ struct SettingsView: View {
                 }
 
                 section("Companion AI (optional)", theme) {
-                    Text("Works fully offline without this. Point it at any OpenAI-compatible server — Ollama or LM Studio on your Mac, or a cloud gateway — and the companion gets smarter. If it's ever unreachable, the built-in companion takes over seamlessly.")
+                    Text("The game works fully offline without any of this. Auto picks the best brain available: a server you configure, then Apple's on-device model (on Apple Intelligence devices), then the built-in storyteller. Anything that fails hands off seamlessly mid-conversation.")
                         .font(.system(size: 14))
                         .foregroundColor(theme.text.opacity(0.7))
+
+                    Picker("Brain", selection: $brainProviderRaw) {
+                        ForEach(BrainProviderChoice.allCases, id: \.rawValue) { choice in
+                            Text(choice.label).tag(choice.rawValue)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+
+                    Text(appModel.brainStatusDescription)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(theme.highlight)
+
                     TextField("Endpoint, e.g. http://my-mac.local:11434/v1", text: $brainEndpoint)
                         .textFieldStyle(.roundedBorder)
                         .autocorrectionDisabled()
@@ -126,6 +141,24 @@ struct SettingsView: View {
                         .textInputAutocapitalization(.never)
                     SecureField("API key (only for cloud gateways)", text: $brainAPIKey)
                         .textFieldStyle(.roundedBorder)
+
+                    Button(testingBrain ? "Asking..." : "Test the companion brain") {
+                        testingBrain = true
+                        brainTestResult = nil
+                        Task {
+                            brainTestResult = await appModel.testBrain()
+                            testingBrain = false
+                        }
+                    }
+                    .disabled(testingBrain)
+                    .buttonStyle(.borderedProminent)
+                    .tint(theme.accent)
+
+                    if let brainTestResult {
+                        Text(brainTestResult)
+                            .font(.system(size: 14))
+                            .foregroundColor(theme.text.opacity(0.85))
+                    }
                 }
 
                 Button("Done") {

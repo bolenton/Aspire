@@ -142,6 +142,31 @@
               }
             },
             {
+              "id": "cave_mouth",
+              "kind": "portal",
+              "name": "waterfall cave",
+              "position": { "x": -5, "y": 0, "z": -17 },
+              "sound": {
+                "asset": "waterfall_loop.wav",
+                "loops": true,
+                "volume": 0.7,
+                "nearRadius": 1.5,
+                "farRadius": 28.0,
+                "spokenDescription": "a curtain of falling water"
+              },
+              "visual": { "shape": "arch", "colorHex": "#5FE0C8", "scale": 2.2, "glow": 1.5 },
+              "requiresFlag": "acorn_found",
+              "lockedExplanation": {
+                "base": "Behind that waterfall I can hear deep echoes... but the oak says we need the glowing acorn first.",
+                "byCompanion": {
+                  "ember": "There's a cave behind the waterfall — I can smell cool stone! But the oak says: acorn first, adventure second. Yip!",
+                  "petal": "Behind the falling water, the dark sings back... the oak says the glowing acorn must light our way first.",
+                  "clover": "I hear a big, deep echo behind the waterfall... the oak whispered that we need the glowing acorn before we go in."
+                }
+              },
+              "destinationSceneID": "echo_chamber"
+            },
+            {
               "id": "buried_treat",
               "kind": "item",
               "name": "buried honey biscuit",
@@ -201,6 +226,170 @@
               },
               "hiddenTease": "I keep feeling like something is murmuring nearby, but it's too quiet for me.",
               "visual": { "shape": "ribbon", "colorHex": "#7FE2D4", "scale": 1.5, "glow": 1.5 }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "crystal_caves",
+      "name": "Crystal Caves",
+      "difficultyTier": 2,
+      "newMechanic": "echo_songs",
+      "scenes": [
+        {
+          "id": "echo_chamber",
+          "name": "the Echo Chamber",
+          "spokenDescription": {
+            "base": "A vast cave where crystals glow like frozen starlight. Every sound comes back to say hello twice.",
+            "byCompanion": {
+              "ember": "A huge, cool cave! It smells like rain and old stone, and the crystals glow like frozen starlight. Hello-hello! Hear that? The cave says everything twice.",
+              "petal": "Ooh... a cave of frozen starlight. The crystals hum, and every sound floats up and up and comes back twice as soft.",
+              "clover": "A great big quiet... full of tiny sounds. The crystals are humming, and the cave whispers everything back twice. I love it here."
+            }
+          },
+          "ambience": [
+            {
+              "asset": "cave_hum_loop.wav",
+              "loops": true,
+              "volume": 0.5,
+              "nearRadius": 1.0,
+              "farRadius": 1000.0,
+              "spokenDescription": "the cave's deep hum"
+            },
+            {
+              "asset": "cave_drips_loop.wav",
+              "loops": true,
+              "volume": 0.45,
+              "nearRadius": 1.0,
+              "farRadius": 1000.0,
+              "spokenDescription": "water drips echoing"
+            }
+          ],
+          "entities": [
+            {
+              "id": "forest_door",
+              "kind": "portal",
+              "name": "way back to the forest",
+              "position": { "x": 0, "y": 0, "z": 9 },
+              "sound": {
+                "asset": "waterfall_loop.wav",
+                "loops": true,
+                "volume": 0.4,
+                "nearRadius": 1.0,
+                "farRadius": 20.0,
+                "spokenDescription": "the waterfall doorway"
+              },
+              "visual": { "shape": "arch", "colorHex": "#5FE0C8", "scale": 2.0, "glow": 1.2 },
+              "destinationSceneID": "fox_hollow"
+            },
+            {
+              "id": "singing_crystal",
+              "kind": "character",
+              "name": "singing crystal",
+              "position": { "x": 0, "y": 0, "z": -13 },
+              "sound": {
+                "asset": "crystal_chime_loop.wav",
+                "loops": true,
+                "volume": 0.8,
+                "nearRadius": 1.5,
+                "farRadius": 24.0,
+                "spokenDescription": "a ringing crystal song"
+              },
+              "visual": { "shape": "door", "colorHex": "#9FD8FF", "scale": 1.6, "glow": 1.8 }
+            },
+            {
+              "id": "moonstone",
+              "kind": "item",
+              "name": "moonstone",
+              "position": { "x": 1.5, "y": 0, "z": -14 },
+              "sound": {
+                "asset": "moonstone_shimmer_loop.wav",
+                "loops": true,
+                "volume": 0.5,
+                "nearRadius": 0.5,
+                "farRadius": 9.0,
+                "spokenDescription": "a soft silvery shimmer"
+              },
+              "visual": { "shape": "sphere", "colorHex": "#E8F4FF", "scale": 0.7, "glow": 2.0 },
+              "requiresFlag": "crystals_awake",
+              "lockedExplanation": {
+                "base": "The moonstone sleeps inside the big crystal. If we sing the crystal's echo song, it will open like a flower.",
+                "byCompanion": {
+                  "ember": "The moonstone is tucked inside the big crystal — even my nose can't dig through crystal! Let's sing its echo song. Yip!",
+                  "petal": "The moonstone dreams inside the crystal... sing the echo song, and it will open like a flower made of light.",
+                  "clover": "Shh... the moonstone is sleeping inside the crystal. If we sing its echo song very gently, it will open up."
+                }
+              }
+            },
+            {
+              "id": "crystal_guardian",
+              "kind": "character",
+              "name": "Boulder the guardian",
+              "position": { "x": -9, "y": 0, "z": -7 },
+              "sound": {
+                "asset": "guardian_snore_loop.wav",
+                "loops": true,
+                "volume": 0.7,
+                "nearRadius": 1.5,
+                "farRadius": 16.0,
+                "spokenDescription": "a deep sleepy rumble"
+              },
+              "visual": { "shape": "mound", "colorHex": "#8FA3B8", "scale": 2.4, "glow": 0.9 },
+              "dialogueID": "d_guardian"
+            },
+            {
+              "id": "glow_mushrooms",
+              "kind": "item",
+              "name": "glow mushrooms",
+              "position": { "x": 5, "y": 0, "z": -6 },
+              "requiresAbility": "keen_smell",
+              "senseLine": {
+                "base": "My nose found mushrooms that glow in the dark — they smell like warm bread!",
+                "byCompanion": {
+                  "ember": "Sniff sniff — YIP! Glow mushrooms! They smell like warm bread and starlight. Foxes first!"
+                }
+              },
+              "hiddenTease": "Something near the cave wall smells faintly sweet, but I can't tell what it is.",
+              "visual": { "shape": "mound", "colorHex": "#B8FF7A", "scale": 0.8, "glow": 1.6 }
+            },
+            {
+              "id": "high_geode",
+              "kind": "item",
+              "name": "hidden geode",
+              "position": { "x": -5, "y": 6, "z": -10 },
+              "requiresAbility": "high_flight",
+              "senseLine": {
+                "base": "Up on the high ledge — a geode full of purple stars!",
+                "byCompanion": {
+                  "petal": "Ooh... up on the high ledge, a geode blooming with purple stars. The sky always knows — even underground."
+                }
+              },
+              "hiddenTease": "Something glitters way up on the high ledge, but it's too far to see.",
+              "visual": { "shape": "nest", "colorHex": "#C9A0FF", "scale": 1.1, "glow": 1.7 }
+            },
+            {
+              "id": "underground_river",
+              "kind": "landmark",
+              "name": "underground river",
+              "position": { "x": 7, "y": -2, "z": 4 },
+              "sound": {
+                "asset": "stream_quiet_loop.wav",
+                "loops": true,
+                "volume": 0.35,
+                "nearRadius": 0.5,
+                "farRadius": 8.0,
+                "spokenDescription": "a deep hidden current"
+              },
+              "requiresAbility": "super_hearing",
+              "senseLine": {
+                "base": "My ears hear a great river sliding under the stone — the cave's own heartbeat!",
+                "byCompanion": {
+                  "clover": "Oh my... listen. A whole river is sliding under the stone. It's like the cave has a heartbeat, just for us."
+                }
+              },
+              "hiddenTease": "Sometimes the floor seems to murmur down low, but it's too quiet for me.",
+              "visual": { "shape": "ribbon", "colorHex": "#6FB8E8", "scale": 1.8, "glow": 1.4 }
             }
           ]
         }
@@ -375,6 +564,101 @@
           ]
         }
       ]
+    },
+    {
+      "id": "the_singing_caves",
+      "title": "The Singing Caves",
+      "requiresFlag": "acorn_found",
+      "spokenSummary": {
+        "base": "The old oak told us a secret: behind the waterfall, the Crystal Caves are waiting. Find the singing crystal, wake it with its echo song, and bring home the moonstone to mend the broken bridge.",
+        "byCompanion": {
+          "ember": "Yip! The oak told us a secret — a whole cave behind the waterfall! We'll sniff out the singing crystal, sing its echo song, and carry home the moonstone to fix the broken bridge!",
+          "petal": "The oak whispered us a secret... behind the waterfall, the Crystal Caves are dreaming. We'll wake the singing crystal with its echo song and float the moonstone home to mend the bridge.",
+          "clover": "The oak told us, very quietly... the Crystal Caves are behind the waterfall. We'll listen for the singing crystal, sing its echo song together, and bring the moonstone home to mend the bridge."
+        }
+      },
+      "steps": [
+        {
+          "id": "enter_caves",
+          "goal": "reach",
+          "targetEntityID": "cave_mouth",
+          "intro": {
+            "base": "Follow the sound of falling water — the cave door is behind the waterfall.",
+            "byCompanion": {
+              "ember": "Follow the splashy water sound! The cave door hides behind the waterfall — foxes first, yip!",
+              "petal": "Drift toward the falling water... the cave door hides behind its silver curtain.",
+              "clover": "Listen for the falling water... the cave door is hiding right behind it. We'll go together."
+            }
+          },
+          "celebration": "The waterfall parts like a curtain — cool air and crystal light spill out!",
+          "hintLadder": [
+            "Listen for the rushing waterfall.",
+            "The waterfall is ahead on your left. Walk toward the falling water.",
+            "Turn until the waterfall sound is straight ahead, then walk to it. Then go through the waterfall cave."
+          ]
+        },
+        {
+          "id": "wake_crystals",
+          "goal": "song",
+          "targetEntityID": "singing_crystal",
+          "songSpellID": "crystal_song",
+          "intro": {
+            "base": "Deep in the cave, the singing crystal hums its echo song. Listen carefully — cave songs are longer than forest songs!",
+            "byCompanion": {
+              "ember": "Hear that ringing? That's the singing crystal! Cave songs are longer than forest songs — ears up, yip!",
+              "petal": "The singing crystal is humming, soft as starlight... cave songs are longer than forest songs, so listen with your whole heart.",
+              "clover": "The singing crystal is humming for us... cave songs are longer than forest songs. We'll listen twice if we need to."
+            }
+          },
+          "celebration": "The whole cave rings like a bell choir! The big crystal opens like a flower of light.",
+          "hintLadder": [
+            "Walk to the ringing crystal first, then listen to its song.",
+            "The crystal's song climbs up like stairs. Listen, then copy it one note at a time.",
+            "Stand by the crystal, tap 'Hear it again', and copy the notes from low to high. Take all the time you want."
+          ],
+          "setsFlag": "crystals_awake"
+        },
+        {
+          "id": "take_moonstone",
+          "goal": "collect",
+          "targetEntityID": "moonstone",
+          "intro": "Inside the open crystal, the moonstone shimmers. Follow its silvery sound!",
+          "celebration": {
+            "base": "The moonstone is yours! It glows warm in your hands, like a tiny piece of the moon that wanted a friend.",
+            "byCompanion": {
+              "ember": "YIP! The moonstone! It's warm like a sunbeam and it picked YOU to carry it home!",
+              "petal": "Ooh... the moonstone. A tiny piece of the moon that wanted a friend. And it chose you.",
+              "clover": "The moonstone... it's humming so happily in your hands. I think it's been waiting for you."
+            }
+          },
+          "hintLadder": [
+            "Follow the soft silvery shimmer.",
+            "The moonstone is right beside the big crystal, very close.",
+            "The moonstone is one step from the singing crystal. Follow the silvery shimmer sound."
+          ],
+          "setsFlag": "moonstone_found"
+        },
+        {
+          "id": "carry_light_home",
+          "goal": "reach",
+          "targetEntityID": "forest_door",
+          "intro": "Now carry the moonstone back toward the waterfall doorway — its light wants to fix something.",
+          "celebration": {
+            "base": "The moonstone blazes like a little moon! Its light pours out of the cave and weaves the broken bridge back together, plank by plank. The way to the castle is open... for next time.",
+            "byCompanion": {
+              "ember": "Look-look-LOOK! The moonstone light is fixing the bridge — plank by plank by plank! The castle road is open! Next adventure, here we come — YIP!",
+              "petal": "Ooh... the moonstone light is weaving the bridge back together, like morning weaves the sky. The castle is waiting for us... next time.",
+              "clover": "Oh my... the light is mending the bridge, so gently. Plank by plank. The castle road is open now. For next time... together."
+            }
+          },
+          "hintLadder": [
+            "Head back toward the waterfall sound.",
+            "The waterfall doorway is behind you. Turn around and walk toward it.",
+            "Turn all the way around and walk toward the waterfall doorway — the moonstone will do the rest."
+          ],
+          "setsFlag": "bridge_repaired"
+        }
+      ]
     }
   ],
   "dialogues": [
@@ -431,6 +715,42 @@
         }
       },
       "choices": []
+    },
+    {
+      "id": "d_guardian",
+      "speaker": "Boulder",
+      "line": {
+        "base": "Mmmrrr... zzz... hm? Oh! A small visitor, and a friend. I am Boulder. I have guarded these crystals for nine hundred years... and napped for eight hundred of them.",
+        "byCompanion": {}
+      },
+      "choices": [
+        {
+          "id": "c_gentle",
+          "text": "Shh... sorry for waking you, Mr. Boulder.",
+          "nextDialogueID": "d_guardian_gentle",
+          "memoryKey": "guardian_manner",
+          "memoryValue": "gentle"
+        },
+        {
+          "id": "c_playful",
+          "text": "Wake up, sleepy rock! It's adventure time!",
+          "nextDialogueID": "d_guardian_playful",
+          "memoryKey": "guardian_manner",
+          "memoryValue": "playful"
+        }
+      ]
+    },
+    {
+      "id": "d_guardian_gentle",
+      "speaker": "Boulder",
+      "line": "Such gentle manners... the crystals will like you. Little friend, the singing crystal loves to teach its song to kind visitors. Sing it back, and the moonstone is yours. Now... zzz... mrrr...",
+      "choices": []
+    },
+    {
+      "id": "d_guardian_playful",
+      "speaker": "Boulder",
+      "line": "Ho ho ho! Adventure time, is it? You remind me of the earthquakes — full of bounce! Very well: the singing crystal will teach you its song. Sing it back, and the moonstone is yours. Wake me when you're famous... zzz...",
+      "choices": []
     }
   ],
   "songSpells": [
@@ -439,6 +759,12 @@
       "name": "The Oak's Waking Song",
       "notes": ["do", "re", "mi", "fa", "sol"],
       "tempo": 90
+    },
+    {
+      "id": "crystal_song",
+      "name": "The Crystal's Echo Song",
+      "notes": ["do", "mi", "sol", "la", "ti"],
+      "tempo": 80
     }
   ]
 }

@@ -134,7 +134,15 @@ runner for every push.
 - [x] AirPods head tracking: head yaw offsets the PHASE listener AND the
       companion's perception (directions match where her head points);
       camera stays on body heading so visuals don't lurch
-- [ ] Apple Foundation Model + bundled Gemma brains behind the same protocol
-- [ ] More Whispering Forest scenes; Crystal Caves region (new mechanic)
+- [x] Crystal Caves region behind the waterfall: portal travel between
+      scenes, longer echo songs, Boulder the sleepy guardian, per-companion
+      cave secrets, and the moonstone quest that mends the broken bridge
+- [x] Brain providers: Apple Foundation Model behind the same protocol
+      (conditionally compiled — activates on Apple Intelligence devices when
+      built with the iOS 26 SDK), Auto/On-device/Server/Built-in provider
+      policy, and a "test the companion brain" button in parent settings.
+      A bundled on-device Gemma stays future work (needs llama.cpp runtime
+      + multi-GB weights); a home Ollama server covers that today
+- [ ] Castle region — the mended bridge leads there (next chapter)
 - [ ] TestFlight beta with AppleVis / audiogames.net communities
 - [ ] Free App Store release, Kids category — in her honor

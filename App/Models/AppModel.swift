@@ -126,15 +126,88 @@ final class AppModel: ObservableObject {
     @AppStorage("brain.endpoint") var brainEndpoint: String = ""
     @AppStorage("brain.model") var brainModel: String = ""
     @AppStorage("brain.apiKey") var brainAPIKey: String = ""
+    @AppStorage("brain.provider") var brainProviderRaw: String = BrainProviderChoice.auto.rawValue
 
-    /// Brain chain: configured OpenAI-compatible endpoint (which itself falls
-    /// back to scripted on any error) or the scripted brain outright. The
-    /// companion never goes silent.
+    var brainProvider: BrainProviderChoice {
+        BrainProviderChoice(rawValue: brainProviderRaw) ?? .auto
+    }
+
+    /// Provider policy. Every path bottoms out at the deterministic
+    /// storyteller — the companion never goes silent.
     func makeBrain() -> any CompanionBrain {
-        if let url = URL(string: brainEndpoint), !brainEndpoint.isEmpty, !brainModel.isEmpty {
-            return OpenAICompatibleBrain(endpoint: url, model: brainModel,
-                                         apiKey: brainAPIKey.isEmpty ? nil : brainAPIKey)
+        switch brainProvider {
+        case .scripted:
+            return ScriptedBrain()
+        case .onDevice:
+            return OnDeviceBrain.make() ?? ScriptedBrain()
+        case .remote:
+            return remoteBrain() ?? ScriptedBrain()
+        case .auto:
+            // A configured server is explicit parent intent — it wins.
+            if let remote = remoteBrain() { return remote }
+            if let onDevice = OnDeviceBrain.make() { return onDevice }
+            return ScriptedBrain()
         }
-        return ScriptedBrain()
+    }
+
+    private func remoteBrain() -> (any CompanionBrain)? {
+        guard !brainEndpoint.isEmpty, !brainModel.isEmpty,
+              let url = URL(string: brainEndpoint) else { return nil }
+        return OpenAICompatibleBrain(endpoint: url, model: brainModel,
+                                     apiKey: brainAPIKey.isEmpty ? nil : brainAPIKey)
+    }
+
+    var brainStatusDescription: String {
+        switch brainProvider {
+        case .scripted:
+            return "Built-in storyteller — offline, always available."
+        case .onDevice:
+            return OnDeviceBrain.isAvailable
+                ? "Apple's on-device model — private, free, works offline."
+                : "Apple's on-device model isn't available on this device, so the built-in storyteller will answer."
+        case .remote:
+            return remoteBrain() != nil
+                ? "Your server: \(brainModel) at \(brainEndpoint)."
+                : "Server not set up yet — fill in the endpoint and model below."
+        case .auto:
+            if remoteBrain() != nil { return "Auto → your server (\(brainModel))." }
+            if OnDeviceBrain.isAvailable { return "Auto → Apple's on-device model." }
+            return "Auto → built-in storyteller. Add a server below (or use an Apple Intelligence device) to upgrade."
+        }
+    }
+
+    /// Parent-settings smoke test: asks the active brain one question with a
+    /// tiny grounded context and reports who answered.
+    func testBrain() async -> String {
+        guard let companion = availableCompanions.first else {
+            return "No companions loaded — check the story pack."
+        }
+        let snapshot = WorldSnapshot(
+            tick: 0, sceneID: "brain_test", sceneName: "the testing meadow",
+            sceneDescription: "A quiet, sunny meadow that exists just for testing.",
+            pose: PlayerPose(), perceived: [],
+            ambientSounds: ["a gentle breeze"])
+        let context = CompanionContext(companion: companion, childName: childName,
+                                       snapshot: snapshot)
+        do {
+            let reply = try await makeBrain().reply(to: "Hello! Who are you?", context: context)
+            narrator.speak(reply, voice: companion.voice)
+            return "✓ \(brainStatusDescription)\n\(companion.name) says: “\(reply)”"
+        } catch {
+            return "✗ No answer (\(error.localizedDescription)). In the game, the built-in storyteller covers for it automatically."
+        }
+    }
+}
+
+enum BrainProviderChoice: String, CaseIterable {
+    case auto, onDevice, remote, scripted
+
+    var label: String {
+        switch self {
+        case .auto: return "Auto"
+        case .onDevice: return "On-device"
+        case .remote: return "My server"
+        case .scripted: return "Built-in"
+        }
     }
 }

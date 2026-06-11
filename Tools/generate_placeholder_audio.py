@@ -210,6 +210,59 @@ def stream_quiet_loop():
     return loopify(sig)
 
 
+# ------------------------------------------------------- Crystal Caves cues
+
+def waterfall_loop():
+    sig = bandpass(white(6.0), 150, 4500)
+    swirl = lowpass(white(6.0), 5)
+    sig = [s * (0.8 + 0.3 * w) for s, w in zip(sig, swirl)]
+    return loopify(sig)
+
+
+def cave_hum_loop():
+    sig = tone(58, 7.0, partials=((1, 1.0), (2, 0.4), (3, 0.15)), attack=0.5,
+               vibrato=0.01, vib_rate=0.3)
+    breath = lowpass(white(7.0), 120)
+    sig = [a * (0.75 + 0.25 * math.sin(2 * math.pi * (1 / 5.0) * i / SR)) + b * 0.1
+           for i, (a, b) in enumerate(zip(sig, breath))]
+    return loopify(sig, fade=0.6)
+
+
+def cave_drips_loop():
+    sig = silence(7.0)
+    for at, f in [(0.4, 1900), (1.7, 1500), (2.3, 2200), (3.9, 1700), (5.2, 2000), (6.1, 1600)]:
+        drip = tone(f, 0.5, attack=0.002, decay=0.12, sweep_to=f * 0.7, gain=0.6)
+        mix(sig, drip, at=at)
+        mix(sig, tone(f * 0.5, 0.6, attack=0.01, decay=0.25, gain=0.15), at=at + 0.04)
+    return loopify(sig, fade=0.3)
+
+
+def crystal_chime_loop():
+    sig = silence(6.0)
+    for at, f in [(0.3, 1568), (1.1, 2093), (2.6, 1760), (4.2, 2349), (5.0, 1976)]:
+        mix(sig, bell(f, 1.8), at=at, gain=0.55)
+    return loopify(sig, fade=0.3)
+
+
+def guardian_snore_loop():
+    sig = silence(6.0)
+    for at in [0.4, 3.4]:
+        inhale = tone(75, 1.2, partials=((1, 1.0), (2, 0.5), (3, 0.25)),
+                      attack=0.3, sweep_to=105, gain=0.8)
+        rough = [s * (0.65 + 0.35 * math.sin(2 * math.pi * 22 * i / SR))
+                 for i, s in enumerate(inhale)]
+        mix(sig, lowpass(rough, 500), at=at)
+        mix(sig, tone(95, 0.9, attack=0.1, decay=0.5, sweep_to=65, gain=0.5), at=at + 1.4)
+    return loopify(sig, fade=0.3)
+
+
+def moonstone_shimmer_loop():
+    sig = silence(5.0)
+    for at, f in [(0.2, 3136), (0.9, 3520), (1.8, 3951), (2.9, 3520), (3.8, 3136)]:
+        mix(sig, bell(f, 1.0), at=at, gain=0.3)
+    return loopify([s * 0.55 for s in sig], fade=0.25)
+
+
 # --------------------------------------------------------- companion sounds
 
 def yip(freq_from=600, freq_to=1400):
@@ -396,6 +449,12 @@ CUES = {
     "bridge_creak_loop.wav": bridge_creak_loop,
     "chicks_quiet_loop.wav": chicks_quiet_loop,
     "stream_quiet_loop.wav": stream_quiet_loop,
+    "waterfall_loop.wav": waterfall_loop,
+    "cave_hum_loop.wav": cave_hum_loop,
+    "cave_drips_loop.wav": cave_drips_loop,
+    "crystal_chime_loop.wav": crystal_chime_loop,
+    "guardian_snore_loop.wav": guardian_snore_loop,
+    "moonstone_shimmer_loop.wav": moonstone_shimmer_loop,
     "ember_greeting.wav": ember_greeting,
     "ember_celebrate.wav": ember_celebrate,
     "ember_sniffing.wav": ember_sniffing,

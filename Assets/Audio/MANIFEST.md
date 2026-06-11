@@ -26,6 +26,17 @@ stereo files break localization.
 | chicks_quiet_loop.wav | placeholder | Very quiet sleepy bird chirps | "baby birds nest quiet" |
 | stream_quiet_loop.wav | placeholder | Tiny underground water trickle | "water trickle quiet" |
 
+## Scene: Echo Chamber (Crystal Caves)
+
+| File | Status | Description | Search terms for final pass |
+|---|---|---|---|
+| waterfall_loop.wav | placeholder | Waterfall doorway, seamless loop | "waterfall medium loop" |
+| cave_hum_loop.wav | placeholder | Deep cave drone, breathing loop | "cave ambience drone" |
+| cave_drips_loop.wav | placeholder | Echoing water drips, sparse loop | "cave water drips echo" |
+| crystal_chime_loop.wav | placeholder | Ringing crystal song, sparse bells | "glass bell crystal ring" |
+| guardian_snore_loop.wav | placeholder | Boulder's deep sleepy rumble | "giant snore rumble" |
+| moonstone_shimmer_loop.wav | placeholder | Soft silvery shimmer, very quiet | "magic shimmer twinkle soft" |
+
 ## Companions (roster)
 
 | File | Status | Description |

@@ -124,6 +124,30 @@ final class GatingTests: XCTestCase {
     }
 }
 
+final class TravelTests: XCTestCase {
+    private var gate: Entity {
+        Fixtures.scene().entities.first { $0.id == "castle_gate" }!
+    }
+
+    func testLockedPortalRefusesTravel() {
+        var progress = Fixtures.progress()
+        XCTAssertNil(progress.travel(through: gate))
+        XCTAssertEqual(progress.currentSceneID, "fox_hollow")
+    }
+
+    func testOpenPortalTravels() {
+        var progress = Fixtures.progress(flags: ["bridge_repaired"])
+        XCTAssertEqual(progress.travel(through: gate), "castle_courtyard")
+        XCTAssertEqual(progress.currentSceneID, "castle_courtyard")
+    }
+
+    func testNonPortalNeverTravels() {
+        var progress = Fixtures.progress()
+        let river = Fixtures.scene().entities.first { $0.id == "river" }!
+        XCTAssertNil(progress.travel(through: river))
+    }
+}
+
 final class GameProgressTests: XCTestCase {
     func testQuestStepFlow() {
         let pack = Fixtures.pack()

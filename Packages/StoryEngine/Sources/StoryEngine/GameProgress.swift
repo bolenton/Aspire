@@ -65,6 +65,17 @@ public struct GameProgress: Codable, Equatable, Sendable {
         return (false, entity.lockedExplanation?.resolved(for: chosenCompanionID))
     }
 
+    /// Steps through an open portal. Returns the destination scene id, or
+    /// nil when this isn't a usable portal (locked, gated, or not a portal).
+    @discardableResult
+    public mutating func travel(through entity: Entity) -> String? {
+        guard entity.kind == .portal,
+              let destination = entity.destinationSceneID,
+              availability(of: entity).available else { return nil }
+        currentSceneID = destination
+        return destination
+    }
+
     /// Completes the current step if `entityID` is its target. Returns the
     /// completed step so callers can speak its celebration line.
     @discardableResult

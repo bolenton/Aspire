@@ -62,9 +62,15 @@ final class ContentValidationTests: XCTestCase {
             }
         }
 
+        let sceneIDs = Set(pack.regions.flatMap(\.scenes).map(\.id))
         for entity in allEntities {
             if let dialogue = entity.dialogueID {
                 XCTAssertTrue(dialogueIDs.contains(dialogue), "entity \(entity.id): unknown dialogue \(dialogue)")
+            }
+            if let destination = entity.destinationSceneID {
+                XCTAssertEqual(entity.kind, .portal, "entity \(entity.id): only portals lead somewhere")
+                XCTAssertTrue(sceneIDs.contains(destination),
+                              "portal \(entity.id): unknown destination \(destination)")
             }
             if let ability = entity.requiresAbility {
                 XCTAssertTrue(abilityIDs.contains(ability), "entity \(entity.id): unknown ability \(ability)")
@@ -89,16 +95,17 @@ final class ContentValidationTests: XCTestCase {
         }
     }
 
-    func testEveryCompanionGetsAnAbilitySecretInSceneOne() throws {
+    func testEveryCompanionGetsAnAbilitySecretInEveryScene() throws {
         let pack = try StoryPack.load(from: data(at: "StoryPacks/ForestJourney/pack.json"))
         let roster = try CompanionRoster.load(from: data(at: "StoryPacks/Companions/roster.json"))
-        let sceneOne = pack.regions.first!.scenes.first!
 
-        for companion in roster.companions {
-            let revealed = sceneOne.activeEntities(companion: companion)
-                .filter { $0.revealedByAbilityID != nil }
-            XCTAssertFalse(revealed.isEmpty,
-                           "\(companion.name) needs an ability secret in \(sceneOne.id) — that's the replay magic")
+        for scene in pack.regions.flatMap(\.scenes) {
+            for companion in roster.companions {
+                let revealed = scene.activeEntities(companion: companion)
+                    .filter { $0.revealedByAbilityID != nil }
+                XCTAssertFalse(revealed.isEmpty,
+                               "\(companion.name) needs an ability secret in \(scene.id) — that's the replay magic")
+            }
         }
     }
 }

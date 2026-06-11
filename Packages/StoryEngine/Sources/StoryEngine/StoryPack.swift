@@ -167,6 +167,8 @@ public struct Entity: Codable, Equatable, Sendable {
     /// behind "bridge_repaired"). The companion explains why when it is not.
     public var requiresFlag: String?
     public var lockedExplanation: FlavoredText?
+    /// Portals only: the scene this leads to.
+    public var destinationSceneID: String?
     /// Entity exists only in playthroughs with this companion.
     public var requiresCompanion: String?
     /// Hidden unless the chosen companion has this perception ability.
@@ -182,6 +184,7 @@ public struct Entity: Codable, Equatable, Sendable {
                 sound: SoundSpec? = nil, visual: VisualSpec? = nil,
                 dialogueID: String? = nil, requiresFlag: String? = nil,
                 lockedExplanation: FlavoredText? = nil,
+                destinationSceneID: String? = nil,
                 requiresCompanion: String? = nil, requiresAbility: String? = nil,
                 senseLine: FlavoredText? = nil, hiddenTease: String? = nil) {
         self.id = id
@@ -193,6 +196,7 @@ public struct Entity: Codable, Equatable, Sendable {
         self.dialogueID = dialogueID
         self.requiresFlag = requiresFlag
         self.lockedExplanation = lockedExplanation
+        self.destinationSceneID = destinationSceneID
         self.requiresCompanion = requiresCompanion
         self.requiresAbility = requiresAbility
         self.senseLine = senseLine
