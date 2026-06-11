@@ -95,7 +95,8 @@ open Lantern.xcodeproj       # set your signing team, plug in the iPad, Run ▶
 Notes:
 - With a free Apple ID the install expires after 7 days; a paid developer
   account ($99/yr, needed for TestFlight/App Store anyway) extends it to a year.
-- `git lfs install` once before adding binary assets (see .gitattributes).
+- Binary assets are committed directly (no Git LFS yet — see .gitattributes
+  for when/how to enable it once large final assets arrive).
 - The game runs fully without audio assets (sources are skipped until files
   land per `Assets/Audio/MANIFEST.md`) and without any AI configured.
 
