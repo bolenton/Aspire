@@ -35,10 +35,14 @@ enum WorldBuilder {
         return material
     }
 
-    /// One world object: the bold shape plus a soft additive halo shell.
-    /// The halo radius carries the calibrated/adaptive glow boost.
+    /// One world object: the bold shape, a soft additive halo shell, and a
+    /// billboarded icon marker floating above — silhouette for close range,
+    /// chip for across the meadow. The halo radius carries the calibrated/
+    /// adaptive glow boost; high contrast collapses every interactable to
+    /// loud yellow with white halos and markers.
     static func build(_ resolved: ResolvedEntity, companion: Companion,
-                      glowBoost: Double) -> RealityKit.Entity {
+                      glowBoost: Double, isQuestTarget: Bool,
+                      highContrast: Bool) -> RealityKit.Entity {
         let root = RealityKit.Entity()
         let entity = resolved.entity
         root.position = SIMD3<Float>(Float(entity.position.x),
@@ -46,7 +50,8 @@ enum WorldBuilder {
                                      Float(entity.position.z))
 
         if resolved.isAnonymousTease {
-            // A faint shimmer: something is there, but not what.
+            // A faint shimmer: something is there, but not what. No marker —
+            // labelling the mystery would spoil it.
             let wisp = ModelEntity(mesh: .generateSphere(radius: 0.35),
                                    materials: [haloMaterial(UIColor(white: 0.75, alpha: 1), opacity: 0.18)])
             wisp.position.y = 0.8
@@ -55,13 +60,18 @@ enum WorldBuilder {
         }
 
         let spec = entity.visual ?? VisualSpec(shape: "sphere", colorHex: "#FFD24A")
-        let tint = color(hex: spec.colorHex)
+        let tint = highContrast ? color(hex: "#FFE000") : color(hex: spec.colorHex)
         let scale = Float(spec.scale)
         let body: RealityKit.Entity
+        let topY: Float
         if entity.id == StoryConventions.companionPlaceholder {
             body = VoxelWorld.critter(species: companion.species, tint: tint)
+            topY = 1.8 // clears the tallest critter (bunny ears, ×1.3)
         } else {
-            body = shape(spec.shape, tint: tint, scale: scale)
+            let built = shape(spec.shape, tint: tint, scale: scale,
+                              highContrast: highContrast)
+            body = built.entity
+            topY = built.topY
         }
         body.name = "body"
         root.addChild(body)
@@ -69,39 +79,113 @@ enum WorldBuilder {
 
         let glow = Float(spec.glow * glowBoost)
         if glow > 0.1 {
+            let haloTint = highContrast ? UIColor.white : tint
             let halo = ModelEntity(mesh: .generateSphere(radius: 0.9 * scale),
-                                   materials: [haloMaterial(tint, opacity: min(0.3, 0.12 * glow))])
+                                   materials: [haloMaterial(haloTint, opacity: min(0.3, 0.12 * glow))])
             halo.position.y = body.position.y
             halo.scale = SIMD3<Float>(repeating: 0.9 + 0.35 * glow)
             halo.name = "halo"
             root.addChild(halo)
         }
+
+        // Both chip looks are built up front; WorldView's tick toggles them
+        // by the CURRENT quest target so the gold chip stays correct even
+        // when the target changes without a world rebuild.
+        let marker = RealityKit.Entity()
+        marker.name = "marker"
+        marker.position.y = topY + 1.1
+        let chip = MarkerBuilder.marker(kind: entity.kind, isQuestTarget: false,
+                                        highContrast: highContrast)
+        chip.name = "chip"
+        chip.isEnabled = !isQuestTarget
+        let questChip = MarkerBuilder.marker(kind: entity.kind, isQuestTarget: true,
+                                             highContrast: highContrast)
+        questChip.name = "chipQuest"
+        questChip.isEnabled = isQuestTarget
+        marker.addChild(chip)
+        marker.addChild(questChip)
+        root.addChild(marker)
         return root
     }
 
-    private static func shape(_ kind: String, tint: UIColor, scale: Float) -> ModelEntity {
-        let material = glowMaterial(tint, emissive: 2.0)
+    /// The procedural silhouette library. Returns the body entity plus the
+    /// height of its highest point (root-local), where the icon marker
+    /// floats. Every silhouette must read at a glance — a door looks
+    /// enterable, a character has a face — because her eyes get one chance
+    /// before her ears take over. High contrast forces everything to one
+    /// loud yellow so recognition rests on shape + marker alone.
+    private static func shape(_ kind: String, tint: UIColor, scale: Float,
+                              highContrast: Bool) -> (entity: ModelEntity, topY: Float) {
+        let bodyEmissive: Float = highContrast ? 3.5 : 3.0
+        let material = glowMaterial(tint, emissive: bodyEmissive)
+        // Accent parts (canopy greens, dim panels) flatten to the forced
+        // yellow in high contrast — one hue, zero ambiguity.
+        func accent(_ color: UIColor, emissive: Float) -> PhysicallyBasedMaterial {
+            highContrast ? glowMaterial(tint, emissive: bodyEmissive)
+                         : glowMaterial(color, emissive: emissive)
+        }
+        // Eyes stay dark in every mode: a face needs its darkest feature.
+        let eyeMaterial = glowMaterial(UIColor(white: 0.07, alpha: 1), emissive: 0.05)
+
         switch kind {
         case "tree":
-            let trunk = ModelEntity(mesh: .generateBox(width: 0.45 * scale, height: 2.2 * scale, depth: 0.45 * scale),
-                                    materials: [glowMaterial(tint, emissive: 1.2)])
-            trunk.position.y = 1.1 * scale
-            let canopy = ModelEntity(
-                mesh: .generateBox(width: 2.0 * scale, height: 1.6 * scale, depth: 2.0 * scale, cornerRadius: 0.08),
-                materials: [glowMaterial(UIColor(red: 0.45, green: 0.85, blue: 0.45, alpha: 1), emissive: 1.6)])
-            canopy.position.y = 1.9 * scale
-            let cap = ModelEntity(
-                mesh: .generateBox(width: 1.1 * scale, height: 0.8 * scale, depth: 1.1 * scale),
-                materials: [glowMaterial(UIColor(red: 0.55, green: 0.92, blue: 0.50, alpha: 1), emissive: 1.8)])
-            cap.position.y = 3.0 * scale
-            trunk.addChild(canopy)
-            trunk.addChild(cap)
-            return trunk
+            // The story oak: angled branches and a stepped three-tier crown,
+            // deliberately unlike the box-on-box scatter trees so "the old
+            // oak" is findable among ordinary forest.
+            let trunk = ModelEntity(mesh: .generateBox(width: 0.5 * scale, height: 2.4 * scale, depth: 0.5 * scale),
+                                    materials: [accent(tint, emissive: 1.8)])
+            trunk.position.y = 1.2 * scale
+            for index in 0..<3 {
+                let yaw = Float(index) * (2 * .pi / 3) + 0.5
+                let branch = ModelEntity(
+                    mesh: .generateBox(width: 0.2 * scale, height: 1.4 * scale, depth: 0.2 * scale),
+                    materials: [accent(tint, emissive: 1.8)])
+                branch.position = SIMD3<Float>(sin(yaw) * 0.55 * scale, 1.0 * scale,
+                                               cos(yaw) * 0.55 * scale)
+                branch.orientation = simd_quatf(angle: yaw, axis: SIMD3<Float>(0, 1, 0))
+                    * simd_quatf(angle: -0.65, axis: SIMD3<Float>(0, 0, 1))
+                trunk.addChild(branch)
+            }
+            let tiers: [(width: Float, height: Float, y: Float, color: UIColor, emissive: Float)] = [
+                (2.6, 0.9, 1.6, UIColor(red: 0.38, green: 0.78, blue: 0.40, alpha: 1), 1.6),
+                (2.0, 0.8, 2.35, UIColor(red: 0.45, green: 0.85, blue: 0.45, alpha: 1), 1.8),
+                (1.2, 0.7, 3.0, UIColor(red: 0.55, green: 0.92, blue: 0.50, alpha: 1), 2.0),
+            ]
+            for tier in tiers {
+                let canopy = ModelEntity(
+                    mesh: .generateBox(width: tier.width * scale, height: tier.height * scale,
+                                       depth: tier.width * scale, cornerRadius: 0.08),
+                    materials: [accent(tier.color, emissive: tier.emissive)])
+                canopy.position.y = tier.y * scale
+                trunk.addChild(canopy)
+            }
+            return (trunk, 4.55 * scale)
         case "door":
-            let door = ModelEntity(mesh: .generateBox(width: 1.1 * scale, height: 1.8 * scale, depth: 0.25 * scale, cornerRadius: 0.1),
-                                   materials: [material])
-            door.position.y = 0.9 * scale
-            return door
+            // A real door, not a slab: bright jambs framing a recessed dim
+            // panel with a glowing knob. The filled panel is what separates
+            // "closed thing you open" from the arch's empty walk-through.
+            let panel = ModelEntity(
+                mesh: .generateBox(width: 1.0 * scale, height: 1.9 * scale, depth: 0.12 * scale, cornerRadius: 0.04),
+                materials: [accent(tint, emissive: 1.0)])
+            panel.position = SIMD3<Float>(0, 0.95 * scale, -0.06 * scale)
+            for side: Float in [-0.62, 0.62] {
+                let jamb = ModelEntity(
+                    mesh: .generateBox(width: 0.22 * scale, height: 2.2 * scale, depth: 0.3 * scale),
+                    materials: [material])
+                jamb.position = SIMD3<Float>(side * scale, 0.15 * scale, 0.06 * scale)
+                panel.addChild(jamb)
+            }
+            let lintel = ModelEntity(
+                mesh: .generateBox(width: 1.7 * scale, height: 0.3 * scale, depth: 0.3 * scale),
+                materials: [material])
+            lintel.position = SIMD3<Float>(0, 1.4 * scale, 0.06 * scale)
+            panel.addChild(lintel)
+            let knob = ModelEntity(
+                mesh: .generateBox(width: 0.12 * scale, height: 0.12 * scale, depth: 0.12 * scale, cornerRadius: 0.04),
+                materials: [glowMaterial(UIColor(red: 1.0, green: 0.88, blue: 0.45, alpha: 1), emissive: 4.0)])
+            knob.position = SIMD3<Float>(0.32 * scale, 0.05 * scale, 0.16 * scale)
+            panel.addChild(knob)
+            return (panel, 2.55 * scale)
         case "arch":
             let left = ModelEntity(mesh: .generateBox(width: 0.3 * scale, height: 1.4 * scale, depth: 0.3 * scale),
                                    materials: [material])
@@ -114,30 +198,75 @@ enum WorldBuilder {
             top.position.y = 1.45 * scale
             left.addChild(right)
             left.addChild(top)
-            return left
+            return (left, 1.6 * scale)
+        case "character":
+            // A person-shape with a face. The two dark eyes are the single
+            // biggest "someone to talk to" cue for low vision.
+            let body = ModelEntity(
+                mesh: .generateBox(width: 0.6 * scale, height: 0.8 * scale, depth: 0.35 * scale, cornerRadius: 0.05),
+                materials: [material])
+            body.position.y = 0.6 * scale
+            let head = ModelEntity(
+                mesh: .generateBox(width: 0.46 * scale, height: 0.45 * scale, depth: 0.46 * scale, cornerRadius: 0.05),
+                materials: [material])
+            head.position.y = 0.65 * scale
+            body.addChild(head)
+            for side: Float in [-0.10, 0.10] {
+                let eye = ModelEntity(
+                    mesh: .generateBox(width: 0.09 * scale, height: 0.09 * scale, depth: 0.05 * scale),
+                    materials: [eyeMaterial])
+                eye.position = SIMD3<Float>(side * scale, 0.70 * scale, -0.26 * scale)
+                body.addChild(eye)
+            }
+            for side: Float in [-0.38, 0.38] {
+                let arm = ModelEntity(
+                    mesh: .generateBox(width: 0.16 * scale, height: 0.5 * scale, depth: 0.16 * scale, cornerRadius: 0.04),
+                    materials: [material])
+                arm.position = SIMD3<Float>(side * scale, 0.05 * scale, 0)
+                body.addChild(arm)
+            }
+            return (body, 1.5 * scale)
+        case "chest":
+            // Treasure box: base, slightly proud lid, and a bright clasp —
+            // the universal "open me" silhouette.
+            let base = ModelEntity(
+                mesh: .generateBox(width: 1.1 * scale, height: 0.6 * scale, depth: 0.75 * scale, cornerRadius: 0.05),
+                materials: [material])
+            base.position.y = 0.3 * scale
+            let lid = ModelEntity(
+                mesh: .generateBox(width: 1.18 * scale, height: 0.35 * scale, depth: 0.82 * scale, cornerRadius: 0.1),
+                materials: [accent(tint, emissive: 1.6)])
+            lid.position.y = 0.45 * scale
+            base.addChild(lid)
+            let clasp = ModelEntity(
+                mesh: .generateBox(width: 0.16 * scale, height: 0.22 * scale, depth: 0.08 * scale, cornerRadius: 0.03),
+                materials: [glowMaterial(UIColor(red: 1.0, green: 0.88, blue: 0.45, alpha: 1), emissive: 4.0)])
+            clasp.position = SIMD3<Float>(0, 0.18 * scale, -0.40 * scale)
+            base.addChild(clasp)
+            return (base, 0.85 * scale)
         case "ribbon":
             let ribbon = ModelEntity(mesh: .generateBox(width: 2.2 * scale, height: 0.06, depth: 7.0 * scale, cornerRadius: 0.03),
-                                     materials: [glowMaterial(tint, emissive: 1.4)])
+                                     materials: [accent(tint, emissive: 1.4)])
             ribbon.position.y = 0.03
-            return ribbon
+            return (ribbon, 0.2 * scale)
         case "mound":
             let mound = ModelEntity(
                 mesh: .generateBox(width: 1.4 * scale, height: 0.6 * scale, depth: 1.4 * scale, cornerRadius: 0.1),
                 materials: [material])
             mound.position.y = 0.3 * scale
-            return mound
+            return (mound, 0.6 * scale)
         case "nest":
             let nest = ModelEntity(
                 mesh: .generateBox(width: 0.9 * scale, height: 0.45 * scale, depth: 0.9 * scale, cornerRadius: 0.12),
                 materials: [material])
-            return nest
+            return (nest, 0.3 * scale)
         default: // "sphere" and anything unknown: a chunky floating cube,
                  // spun slowly by the world view — the classic pickup look.
             let cube = ModelEntity(
                 mesh: .generateBox(width: 0.9 * scale, height: 0.9 * scale, depth: 0.9 * scale, cornerRadius: 0.06),
                 materials: [material])
             cube.position.y = 0.8 * scale
-            return cube
+            return (cube, 1.3 * scale)
         }
     }
 

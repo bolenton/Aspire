@@ -48,11 +48,29 @@ enum VoxelWorld {
         /// Ground tile palette, varied per-tile like Minecraft grass.
         let groundColors: [UIColor]
         let hillColor: UIColor
+        /// Deliberately dim: the floor must sit well below interactable glow
+        /// so the things she can touch own the bright end of the range.
         let groundEmissive: Float
         let lightIntensity: Float
     }
 
-    static func biome(for environment: String?) -> Biome {
+    static func biome(for environment: String?, highContrast: Bool = false) -> Biome {
+        if highContrast {
+            // Near-black everywhere: in this mode recognition comes entirely
+            // from the forced-yellow interactables and white markers, so the
+            // world itself must not compete for her eyes at all.
+            return Biome(
+                skyColor: UIColor(white: 0.0, alpha: 1),
+                baseColor: UIColor(white: 0.03, alpha: 1),
+                groundColors: [
+                    UIColor(white: 0.055, alpha: 1),
+                    UIColor(white: 0.06, alpha: 1),
+                    UIColor(white: 0.07, alpha: 1),
+                ],
+                hillColor: UIColor(white: 0.10, alpha: 1),
+                groundEmissive: 0.05,
+                lightIntensity: 900)
+        }
         switch environment {
         case "cave":
             return Biome(
@@ -64,7 +82,7 @@ enum VoxelWorld {
                     UIColor(red: 0.19, green: 0.18, blue: 0.28, alpha: 1),
                 ],
                 hillColor: UIColor(red: 0.10, green: 0.11, blue: 0.18, alpha: 1),
-                groundEmissive: 0.35,
+                groundEmissive: 0.21,
                 lightIntensity: 700)
         case "castle":
             return Biome(
@@ -76,7 +94,7 @@ enum VoxelWorld {
                     UIColor(red: 0.42, green: 0.37, blue: 0.33, alpha: 1),
                 ],
                 hillColor: UIColor(red: 0.26, green: 0.23, blue: 0.24, alpha: 1),
-                groundEmissive: 0.45,
+                groundEmissive: 0.27,
                 lightIntensity: 1400)
         default: // forest
             return Biome(
@@ -88,7 +106,7 @@ enum VoxelWorld {
                     UIColor(red: 0.21, green: 0.46, blue: 0.24, alpha: 1),
                 ],
                 hillColor: UIColor(red: 0.12, green: 0.26, blue: 0.16, alpha: 1),
-                groundEmissive: 0.55,
+                groundEmissive: 0.33,
                 lightIntensity: 1200)
         }
     }
@@ -113,8 +131,9 @@ enum VoxelWorld {
     /// The whole biome floor: a dark base plane, chunky tiles with a slight
     /// gap (the "Lego baseplate" grid), block-stepped hills ringing the
     /// playable flat, and biome scatter.
-    static func terrain(environment: String?, seedKey: String) -> RealityKit.Entity {
-        let biome = biome(for: environment)
+    static func terrain(environment: String?, seedKey: String,
+                        highContrast: Bool = false) -> RealityKit.Entity {
+        let biome = biome(for: environment, highContrast: highContrast)
         let root = RealityKit.Entity()
         var rng = SeededRandom(seed: seedKey)
 
@@ -123,37 +142,94 @@ enum VoxelWorld {
         base.position.y = -0.06
         root.addChild(base)
 
+        // Tiles batch into one mesh per palette color: ~729 entities collapse
+        // to at most four draw calls, the headroom this look runs on. The RNG
+        // consumption below matches the historical per-tile loop EXACTLY
+        // (same calls, same xi/zi order), so every world she already knows
+        // keeps its exact colors.
+        let palette = biome.groundColors + [biome.hillColor]
+        let hillIndex = biome.groundColors.count
+        let groundIndices = Array(biome.groundColors.indices)
+        var buckets = Array(repeating: TileMesh(), count: palette.count)
+
         for xi in -tileSpan...tileSpan {
             for zi in -tileSpan...tileSpan {
                 let x = Double(xi) * tileGrid
                 let z = Double(zi) * tileGrid
                 let height = tileHeight(x: x, z: z)
                 let raised = height > 0.01
-                var color = raised ? biome.hillColor : rng.pick(biome.groundColors)
+                var colorIndex = raised ? hillIndex : rng.pick(groundIndices)
                 if raised, rng.chance(0.3) {
-                    color = rng.pick(biome.groundColors)
+                    colorIndex = rng.pick(groundIndices)
                 }
                 let boxHeight = Float(1.0 + height)
-                let tile = ModelEntity(
-                    mesh: .generateBox(width: Float(tileGrid) - 0.12,
-                                       height: boxHeight,
-                                       depth: Float(tileGrid) - 0.12,
-                                       cornerRadius: 0.05),
-                    materials: [solid(color, emissive: biome.groundEmissive)])
-                tile.position = SIMD3<Float>(Float(x), Float(height) - boxHeight / 2, Float(z))
-                root.addChild(tile)
+                buckets[colorIndex].addBox(
+                    center: SIMD3<Float>(Float(x), Float(height) - boxHeight / 2, Float(z)),
+                    size: SIMD3<Float>(Float(tileGrid) - 0.12, boxHeight, Float(tileGrid) - 0.12))
             }
+        }
+        for (index, bucket) in buckets.enumerated() where !bucket.isEmpty {
+            guard let mesh = bucket.meshResource() else { continue }
+            let tiles = ModelEntity(mesh: mesh,
+                                    materials: [solid(palette[index], emissive: biome.groundEmissive)])
+            root.addChild(tiles)
         }
 
         switch environment {
         case "cave":
-            scatterCave(into: root, rng: &rng)
+            scatterCave(into: root, rng: &rng, highContrast: highContrast)
         case "castle":
-            buildCastleWalls(into: root)
+            buildCastleWalls(into: root, highContrast: highContrast)
         default:
-            scatterForest(into: root, rng: &rng)
+            scatterForest(into: root, rng: &rng, highContrast: highContrast)
         }
         return root
+    }
+
+    /// Accumulates axis-aligned boxes — minus their never-visible bottom
+    /// faces — into a single mesh, so the whole tiled floor renders as a
+    /// handful of entities instead of hundreds.
+    private struct TileMesh {
+        private var positions: [SIMD3<Float>] = []
+        private var normals: [SIMD3<Float>] = []
+        private var indices: [UInt32] = []
+
+        var isEmpty: Bool { positions.isEmpty }
+
+        mutating func addBox(center: SIMD3<Float>, size: SIMD3<Float>) {
+            let minP = center - size / 2
+            let maxP = center + size / 2
+            addQuad([SIMD3(minP.x, maxP.y, minP.z), SIMD3(minP.x, maxP.y, maxP.z),
+                     SIMD3(maxP.x, maxP.y, maxP.z), SIMD3(maxP.x, maxP.y, minP.z)],
+                    normal: SIMD3(0, 1, 0))
+            addQuad([SIMD3(maxP.x, minP.y, maxP.z), SIMD3(maxP.x, minP.y, minP.z),
+                     SIMD3(maxP.x, maxP.y, minP.z), SIMD3(maxP.x, maxP.y, maxP.z)],
+                    normal: SIMD3(1, 0, 0))
+            addQuad([SIMD3(minP.x, minP.y, minP.z), SIMD3(minP.x, minP.y, maxP.z),
+                     SIMD3(minP.x, maxP.y, maxP.z), SIMD3(minP.x, maxP.y, minP.z)],
+                    normal: SIMD3(-1, 0, 0))
+            addQuad([SIMD3(minP.x, minP.y, maxP.z), SIMD3(maxP.x, minP.y, maxP.z),
+                     SIMD3(maxP.x, maxP.y, maxP.z), SIMD3(minP.x, maxP.y, maxP.z)],
+                    normal: SIMD3(0, 0, 1))
+            addQuad([SIMD3(maxP.x, minP.y, minP.z), SIMD3(minP.x, minP.y, minP.z),
+                     SIMD3(minP.x, maxP.y, minP.z), SIMD3(maxP.x, maxP.y, minP.z)],
+                    normal: SIMD3(0, 0, -1))
+        }
+
+        private mutating func addQuad(_ corners: [SIMD3<Float>], normal: SIMD3<Float>) {
+            let base = UInt32(positions.count)
+            positions.append(contentsOf: corners)
+            normals.append(contentsOf: [normal, normal, normal, normal])
+            indices.append(contentsOf: [base, base + 1, base + 2, base, base + 2, base + 3])
+        }
+
+        func meshResource() -> MeshResource? {
+            var descriptor = MeshDescriptor(name: "tiles")
+            descriptor.positions = MeshBuffer(positions)
+            descriptor.normals = MeshBuffer(normals)
+            descriptor.primitives = .triangles(indices)
+            return try? MeshResource.generate(from: [descriptor])
+        }
     }
 
     /// Flat across the playable area, rising in quantized block steps beyond.
@@ -166,6 +242,16 @@ enum VoxelWorld {
         return steps * stepHeight
     }
 
+    /// Scenery material: in high-contrast mode every prop collapses to a
+    /// faint gray silhouette — shape stays for orientation, but nothing
+    /// competes with the yellow interactables for her eyes. Callers still
+    /// draw colors from the RNG so world determinism is untouched.
+    private static func scenery(_ color: UIColor, emissive: Float,
+                                highContrast: Bool) -> PhysicallyBasedMaterial {
+        highContrast ? solid(UIColor(white: 0.12, alpha: 1), emissive: 0.08)
+                     : solid(color, emissive: emissive)
+    }
+
     /// A deterministic ring position outside the story entities' area.
     private static func ringSpot(_ rng: inout SeededRandom) -> SIMD3<Float> {
         let angle = rng.range(0...(2 * .pi))
@@ -175,7 +261,8 @@ enum VoxelWorld {
         return SIMD3<Float>(x, Float(tileHeight(x: Double(x), z: Double(z))), z)
     }
 
-    private static func scatterForest(into root: RealityKit.Entity, rng: inout SeededRandom) {
+    private static func scatterForest(into root: RealityKit.Entity, rng: inout SeededRandom,
+                                      highContrast: Bool) {
         let leafGreens = [
             UIColor(red: 0.30, green: 0.62, blue: 0.30, alpha: 1),
             UIColor(red: 0.24, green: 0.55, blue: 0.27, alpha: 1),
@@ -187,14 +274,14 @@ enum VoxelWorld {
             let height = Float(rng.range(1.6...2.6))
             let tree = RealityKit.Entity()
             let trunk = ModelEntity(mesh: .generateBox(width: 0.5, height: height, depth: 0.5),
-                                    materials: [solid(trunkBrown, emissive: 0.4)])
+                                    materials: [scenery(trunkBrown, emissive: 0.4, highContrast: highContrast)])
             trunk.position.y = height / 2
             let leaves = ModelEntity(
                 mesh: .generateBox(width: 2.4, height: 2.0, depth: 2.4, cornerRadius: 0.1),
-                materials: [solid(rng.pick(leafGreens), emissive: 0.7)])
+                materials: [scenery(rng.pick(leafGreens), emissive: 0.7, highContrast: highContrast)])
             leaves.position.y = height + 0.9
             let cap = ModelEntity(mesh: .generateBox(width: 1.3, height: 0.9, depth: 1.3),
-                                  materials: [solid(rng.pick(leafGreens), emissive: 0.8)])
+                                  materials: [scenery(rng.pick(leafGreens), emissive: 0.8, highContrast: highContrast)])
             cap.position.y = height + 2.3
             tree.addChild(trunk)
             tree.addChild(leaves)
@@ -208,13 +295,14 @@ enum VoxelWorld {
             let angle = rng.range(0...(2 * .pi))
             let radius = rng.range(5...22)
             let flower = ModelEntity(mesh: .generateBox(width: 0.16, height: 0.3, depth: 0.16),
-                                     materials: [solid(rng.pick(petalColors), emissive: 1.6)])
+                                     materials: [scenery(rng.pick(petalColors), emissive: 1.6, highContrast: highContrast)])
             flower.position = SIMD3<Float>(Float(cos(angle) * radius), 0.15, Float(sin(angle) * radius))
             root.addChild(flower)
         }
     }
 
-    private static func scatterCave(into root: RealityKit.Entity, rng: inout SeededRandom) {
+    private static func scatterCave(into root: RealityKit.Entity, rng: inout SeededRandom,
+                                    highContrast: Bool) {
         let stone = UIColor(red: 0.22, green: 0.23, blue: 0.33, alpha: 1)
         let crystalColors = [
             UIColor(red: 0.55, green: 0.85, blue: 1.0, alpha: 1),
@@ -228,7 +316,7 @@ enum VoxelWorld {
             for layer in 0..<3 {
                 let side = Float(1.5 - Double(layer) * 0.45) * Float(rng.range(0.7...1.1))
                 let block = ModelEntity(mesh: .generateBox(width: side, height: 1.0, depth: side),
-                                        materials: [solid(stone, emissive: 0.35)])
+                                        materials: [scenery(stone, emissive: 0.35, highContrast: highContrast)])
                 block.position.y = y + 0.5
                 stalagmite.addChild(block)
                 y += 1.0
@@ -240,7 +328,7 @@ enum VoxelWorld {
             let spot = ringSpot(&rng)
             let crystal = ModelEntity(
                 mesh: .generateBox(width: 0.5, height: Float(rng.range(1.0...2.4)), depth: 0.5),
-                materials: [solid(rng.pick(crystalColors), emissive: 2.2)])
+                materials: [scenery(rng.pick(crystalColors), emissive: 2.2, highContrast: highContrast)])
             crystal.position = spot + SIMD3<Float>(0, 0.6, 0)
             crystal.orientation = simd_quatf(angle: Float(rng.range(-0.4...0.4)),
                                              axis: SIMD3<Float>(1, 0, 1))
@@ -248,9 +336,9 @@ enum VoxelWorld {
         }
     }
 
-    private static func buildCastleWalls(into root: RealityKit.Entity) {
+    private static func buildCastleWalls(into root: RealityKit.Entity, highContrast: Bool) {
         let stone = UIColor(red: 0.45, green: 0.41, blue: 0.40, alpha: 1)
-        let wallMaterial = solid(stone, emissive: 0.5)
+        let wallMaterial = scenery(stone, emissive: 0.5, highContrast: highContrast)
         let span: Float = 29
         let segments: [(position: SIMD3<Float>, size: SIMD3<Float>)] = [
             (SIMD3<Float>(0, 1.6, -span), SIMD3<Float>(span * 2, 3.2, 1.2)),
@@ -322,10 +410,18 @@ enum VoxelWorld {
         return root
     }
 
-    /// A companion as a chunky voxel critter, by species.
+    /// A companion as a chunky voxel critter, by species. Slightly larger
+    /// than life (×1.3) and given simple dark eyes — a face is the single
+    /// biggest "that's a creature" cue for low vision.
     static func critter(species: String, tint: UIColor) -> RealityKit.Entity {
         let root = RealityKit.Entity()
         let white = UIColor(red: 0.98, green: 0.95, blue: 0.9, alpha: 1)
+        let eyeColor = UIColor(white: 0.07, alpha: 1)
+        func eye(_ x: Float, _ y: Float, _ z: Float) -> ModelEntity {
+            let eye = block(0.08, 0.08, 0.06, eyeColor, emissive: 0.05)
+            eye.position = SIMD3<Float>(x, y, z)
+            return eye
+        }
         switch species.lowercased() {
         case "fox":
             let body = block(0.5, 0.42, 0.85, tint)
@@ -339,12 +435,18 @@ enum VoxelWorld {
                 ear.position = SIMD3<Float>(side, 1.04, -0.5)
                 root.addChild(ear)
             }
+            for (sx, sz) in [(Float(-0.16), Float(-0.26)), (0.16, -0.26), (-0.16, 0.26), (0.16, 0.26)] {
+                let leg = block(0.15, 0.3, 0.15, tint)
+                leg.position = SIMD3<Float>(sx, 0.15, sz)
+                root.addChild(leg)
+            }
             let tail = block(0.2, 0.2, 0.5, tint)
             tail.position = SIMD3<Float>(0, 0.55, 0.6)
             let tip = block(0.16, 0.16, 0.16, white)
             tip.position = SIMD3<Float>(0, 0.55, 0.88)
             root.addChild(body); root.addChild(head); root.addChild(snout)
             root.addChild(tail); root.addChild(tip)
+            root.addChild(eye(-0.10, 0.84, -0.71)); root.addChild(eye(0.10, 0.84, -0.71))
         case "bunny", "rabbit":
             let body = block(0.46, 0.42, 0.6, tint)
             body.position.y = 0.4
@@ -357,7 +459,10 @@ enum VoxelWorld {
             }
             let puff = block(0.18, 0.18, 0.18, white)
             puff.position = SIMD3<Float>(0, 0.42, 0.36)
-            root.addChild(body); root.addChild(head); root.addChild(puff)
+            let nose = block(0.09, 0.07, 0.05, UIColor.systemPink, emissive: 1.2)
+            nose.position = SIMD3<Float>(0, 0.71, -0.50)
+            root.addChild(body); root.addChild(head); root.addChild(puff); root.addChild(nose)
+            root.addChild(eye(-0.09, 0.80, -0.50)); root.addChild(eye(0.09, 0.80, -0.50))
         case "butterfly":
             let body = block(0.12, 0.4, 0.12, UIColor(red: 0.25, green: 0.2, blue: 0.3, alpha: 1))
             body.position.y = 0.9
@@ -365,6 +470,11 @@ enum VoxelWorld {
                 let wing = block(0.45, 0.5, 0.05, tint, emissive: 1.8)
                 wing.position = SIMD3<Float>(side, 0.95, 0)
                 wing.name = "wing"
+                // Two-tone panel: a pale inner patch so the wings read as
+                // wings, not floating slabs. Child of the wing — it flaps too.
+                let panel = block(0.26, 0.3, 0.07, white, emissive: 1.2)
+                panel.position = SIMD3<Float>(side > 0 ? 0.06 : -0.06, 0, 0)
+                wing.addChild(panel)
                 root.addChild(wing)
             }
             root.addChild(body)
@@ -372,7 +482,9 @@ enum VoxelWorld {
             let body = block(0.5, 0.5, 0.5, tint, emissive: 1.6)
             body.position.y = 0.5
             root.addChild(body)
+            root.addChild(eye(-0.11, 0.58, -0.26)); root.addChild(eye(0.11, 0.58, -0.26))
         }
+        root.scale = SIMD3<Float>(repeating: 1.3)
         root.addChild(WorldBuilder.blobShadow(radius: 0.45))
         return root
     }
