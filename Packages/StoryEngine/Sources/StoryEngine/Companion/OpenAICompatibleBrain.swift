@@ -41,16 +41,20 @@ public struct OpenAICompatibleBrain: CompanionBrain {
 
     public func reply(to utterance: String, context: CompanionContext) async throws -> String {
         do {
-            return try await complete(utterance: utterance, context: context)
+            return try await directReply(to: utterance, context: context)
         } catch {
             return try await fallback.reply(to: utterance, context: context)
         }
     }
 
-    func complete(utterance: String, context: CompanionContext) async throws -> String {
+    /// The raw server call with NO fallback — errors surface to the caller.
+    /// Used by the parent-settings connection test so a broken server is
+    /// reported honestly instead of being silently covered for.
+    public func directReply(to utterance: String, context: CompanionContext) async throws -> String {
         var request = URLRequest(url: endpoint.appendingPathComponent("chat/completions"))
         request.httpMethod = "POST"
-        request.timeoutInterval = 12
+        // Generous: a local model's first request may include a cold load.
+        request.timeoutInterval = 30
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         if let apiKey {
             request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
@@ -66,9 +70,29 @@ public struct OpenAICompatibleBrain: CompanionBrain {
             throw URLError(.badServerResponse)
         }
         let decoded = try JSONDecoder().decode(ChatResponse.self, from: data)
-        guard let content = decoded.choices.first?.message.content, !content.isEmpty else {
+        guard let content = decoded.choices.first?.message.content else {
             throw URLError(.cannotDecodeContentData)
         }
-        return content.trimmingCharacters(in: .whitespacesAndNewlines)
+        let spoken = Self.stripReasoning(content)
+        guard !spoken.isEmpty else {
+            throw URLError(.cannotDecodeContentData)
+        }
+        return spoken
+    }
+
+    /// Reasoning models (Qwen3, DeepSeek-R1, ...) emit <think>...</think>
+    /// blocks before the answer — internal monologue the companion must
+    /// never read aloud to a child.
+    public static func stripReasoning(_ content: String) -> String {
+        var result = content
+        while let open = result.range(of: "<think>"),
+              let close = result.range(of: "</think>", range: open.upperBound..<result.endIndex) {
+            result.removeSubrange(open.lowerBound..<close.upperBound)
+        }
+        // An unterminated think block means the answer never started.
+        if let open = result.range(of: "<think>") {
+            result.removeSubrange(open.lowerBound..<result.endIndex)
+        }
+        return result.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }

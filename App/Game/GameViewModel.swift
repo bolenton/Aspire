@@ -17,6 +17,8 @@ final class GameViewModel: ObservableObject {
     @Published var targetNotes: [SolfegeNote] = []
     @Published private(set) var events = EventLog()
     @Published var companionReply: String?
+    /// True while the brain composes an answer to a spoken question.
+    @Published var isThinking = false
     /// Head-tracking yaw offset (AirPods) on top of the body heading.
     @Published var headYawDegrees: Double = 0
     /// Bumped whenever the visible world changes (collects, unlocks) so the
@@ -319,15 +321,24 @@ final class GameViewModel: ObservableObject {
     // MARK: - Asking the companion
 
     func ask(_ utterance: String) {
+        let trimmed = utterance.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            narrator.speak("Hmm, I didn't catch that. Tap the button and try asking again!",
+                           voice: companion.resolvedVoice)
+            return
+        }
+        isThinking = true
+        SoundBank.shared.playCue("thinking", companion: companion, volume: 0.7)
         let currentContext = context()
         Task {
             let reply: String
             do {
-                reply = try await brain.reply(to: utterance, context: currentContext)
+                reply = try await brain.reply(to: trimmed, context: currentContext)
             } catch {
-                reply = (try? await ScriptedBrain().reply(to: utterance, context: currentContext))
+                reply = (try? await ScriptedBrain().reply(to: trimmed, context: currentContext))
                     ?? "I'm right here with you."
             }
+            self.isThinking = false
             self.companionReply = reply
             self.narrator.speak(reply, voice: self.companion.resolvedVoice)
         }

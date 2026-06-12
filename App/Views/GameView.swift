@@ -5,9 +5,15 @@ struct GameView: View {
     @EnvironmentObject var appModel: AppModel
     @StateObject private var model: GameViewModel
     @StateObject private var listener = SpeechListener()
+    @State private var captionsPinned = false
+    @State private var captionsVisible = true
 
     init(model: GameViewModel) {
         _model = StateObject(wrappedValue: model)
+    }
+
+    private var showCaptions: Bool {
+        captionsPinned || captionsVisible || model.narrator.isSpeaking || listener.isListening
     }
 
     var body: some View {
@@ -20,20 +26,37 @@ struct GameView: View {
             VStack(spacing: 16) {
                 header(theme)
 
-                HStack(alignment: .bottom, spacing: 14) {
-                    CompanionAvatarView(companion: model.companion, narrator: model.narrator,
-                                        size: theme.fontSize(110), theme: theme)
-                    ScrollView {
-                        NarrationTextView(narrator: model.narrator, theme: theme)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(14)
+                // Captions ride along the top and get out of the way a few
+                // seconds after the voice finishes — the world stays visible.
+                if showCaptions {
+                    HStack(alignment: .bottom, spacing: 14) {
+                        CompanionAvatarView(companion: model.companion, narrator: model.narrator,
+                                            size: theme.fontSize(96), theme: theme)
+                        ScrollView {
+                            if listener.isListening {
+                                Text(listener.transcript.isEmpty
+                                     ? "I'm listening..." : listener.transcript)
+                                    .font(.system(size: theme.fontSize(22), weight: .semibold, design: .rounded))
+                                    .foregroundColor(theme.highlight)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(14)
+                            } else {
+                                NarrationTextView(narrator: model.narrator, theme: theme)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(14)
+                            }
+                        }
+                        .frame(maxHeight: 200)
+                        .background(
+                            RoundedRectangle(cornerRadius: 22)
+                                .fill(theme.background.opacity(0.82))
+                        )
                     }
-                    .background(
-                        RoundedRectangle(cornerRadius: 22)
-                            .fill(theme.background.opacity(0.82))
-                    )
+                    .fixedSize(horizontal: false, vertical: true)
+                    .transition(.opacity)
                 }
-                .frame(maxHeight: .infinity)
+
+                Spacer(minLength: 0)
 
                 if let nearby = model.nearbyEntity {
                     Button(actionLabel(for: nearby)) {
@@ -51,6 +74,18 @@ struct GameView: View {
             }
             if model.activeSongSpell != nil {
                 songOverlay(theme)
+            }
+        }
+        .animation(.easeInOut(duration: 0.3), value: showCaptions)
+        .onChange(of: model.narrator.isSpeaking) { _, speaking in
+            if speaking {
+                captionsVisible = true
+            } else {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
+                    if !model.narrator.isSpeaking && !listener.isListening {
+                        captionsVisible = false
+                    }
+                }
             }
         }
         .onAppear {
@@ -101,6 +136,17 @@ struct GameView: View {
             Spacer()
 
             Button {
+                captionsPinned.toggle()
+                if captionsPinned { captionsVisible = true }
+            } label: {
+                Image(systemName: captionsPinned ? "captions.bubble.fill" : "captions.bubble")
+                    .font(.system(size: theme.fontSize(22)))
+                    .foregroundColor(captionsPinned ? theme.accent : theme.text.opacity(0.7))
+                    .padding(14)
+            }
+            .accessibilityLabel(captionsPinned ? "Keep captions on screen: on" : "Keep captions on screen: off")
+
+            Button {
                 model.requestHint()
             } label: {
                 Image(systemName: "lightbulb.fill")
@@ -136,7 +182,7 @@ struct GameView: View {
                 if listener.isListening {
                     SoundBank.shared.play("earcon_listen_stop.wav")
                     listener.finishAndSend()
-                } else {
+                } else if !model.isThinking {
                     model.narrator.stop()
                     SoundBank.shared.play("earcon_listen_start.wav")
                     listener.start { utterance in
@@ -145,9 +191,11 @@ struct GameView: View {
                 }
             } label: {
                 VStack(spacing: 6) {
-                    Image(systemName: listener.isListening ? "ear.fill" : "mic.fill")
+                    Image(systemName: model.isThinking ? "ellipsis.bubble.fill"
+                          : listener.isListening ? "ear.fill" : "mic.fill")
                         .font(.system(size: theme.fontSize(30)))
-                    Text(listener.isListening ? "I'm listening..." : "Talk to \(model.companion.name)")
+                    Text(model.isThinking ? "Thinking..."
+                         : listener.isListening ? "Tap when done" : "Talk to \(model.companion.name)")
                         .font(.system(size: theme.fontSize(15), weight: .bold, design: .rounded))
                 }
                 .foregroundColor(listener.isListening ? theme.background : theme.accent)
@@ -157,8 +205,11 @@ struct GameView: View {
                         .fill(listener.isListening ? theme.highlight : .clear)
                         .overlay(RoundedRectangle(cornerRadius: 22).stroke(theme.accent, lineWidth: 4))
                 )
+                .opacity(model.isThinking ? 0.65 : 1.0)
             }
-            .accessibilityLabel(listener.isListening ? "Done talking" : "Talk to \(model.companion.name)")
+            .accessibilityLabel(model.isThinking ? "\(model.companion.name) is thinking"
+                                : listener.isListening ? "Tap when done talking"
+                                : "Talk to \(model.companion.name)")
         }
     }
 

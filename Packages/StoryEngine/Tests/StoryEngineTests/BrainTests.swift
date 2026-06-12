@@ -117,6 +117,22 @@ final class ScriptedBrainTests: XCTestCase {
     }
 }
 
+final class ReasoningStripTests: XCTestCase {
+    func testStripsThinkBlocks() {
+        let raw = "<think>The child asked about the river. Mention the direction.</think>The river is to your right, friend!"
+        XCTAssertEqual(OpenAICompatibleBrain.stripReasoning(raw),
+                       "The river is to your right, friend!")
+    }
+
+    func testStripsUnterminatedThinkBlock() {
+        XCTAssertEqual(OpenAICompatibleBrain.stripReasoning("<think>still going..."), "")
+    }
+
+    func testPlainContentUntouched() {
+        XCTAssertEqual(OpenAICompatibleBrain.stripReasoning("  Hello there!  "), "Hello there!")
+    }
+}
+
 final class PromptBuilderTests: XCTestCase {
     func testPromptIsGroundedInSnapshot() {
         let prompt = PromptBuilder.systemPrompt(for: Fixtures.context(memories: ["She named the acorn Goldie."]))

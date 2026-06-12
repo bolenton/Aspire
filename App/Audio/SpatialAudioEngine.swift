@@ -10,10 +10,14 @@ import StoryEngine
 final class SpatialAudioEngine {
     private let engine = PHASEEngine(updateMode: .automatic)
     private var listener: PHASEListener?
-    private var spatialMixer: PHASESpatialMixerDefinition?
+    private var spatialPipeline: PHASESpatialPipeline?
     private var soundEvents: [String: PHASESoundEvent] = [:]
     private var sources: [String: PHASESource] = [:]
     private(set) var isRunning = false
+
+    /// Calibrated master level for the world (parent settings). Applied
+    /// together with each sound's authored volume when sources are created.
+    var worldVolume: Float = 1.0
 
     func start() {
         guard !isRunning else { return }
@@ -22,14 +26,7 @@ final class SpatialAudioEngine {
             listener.transform = matrix_identity_float4x4
             try engine.rootObject.addChild(listener)
             self.listener = listener
-
-            if let pipeline = PHASESpatialPipeline(flags: [.directPathTransmission]) {
-                let mixer = PHASESpatialMixerDefinition(spatialPipeline: pipeline)
-                let distanceModel = PHASEGeometricSpreadingDistanceModelParameters()
-                distanceModel.fadeOutParameters = PHASEDistanceModelFadeOutParameters(cullDistance: 70)
-                mixer.distanceModelParameters = distanceModel
-                spatialMixer = mixer
-            }
+            spatialPipeline = PHASESpatialPipeline(flags: [.directPathTransmission])
 
             try engine.start()
             isRunning = true
@@ -53,7 +50,7 @@ final class SpatialAudioEngine {
     }
 
     func addLoopingSource(id: String, sound: SoundSpec, position: Vec3) {
-        guard isRunning, let spatialMixer, let listener else { return }
+        guard isRunning, let spatialPipeline, let listener else { return }
         guard let url = assetURL(for: sound.asset) else { return }
         do {
             let assetID = "\(id)_asset"
@@ -62,8 +59,18 @@ final class SpatialAudioEngine {
                 url: url, identifier: assetID, assetType: .resident,
                 channelLayout: nil, normalizationMode: .dynamic)
 
+            // Per-source mixer so the authored volume and the calibrated
+            // world level actually apply — full-blast ambience drowned the
+            // narration otherwise.
+            let mixer = PHASESpatialMixerDefinition(spatialPipeline: spatialPipeline)
+            let distanceModel = PHASEGeometricSpreadingDistanceModelParameters()
+            distanceModel.fadeOutParameters = PHASEDistanceModelFadeOutParameters(
+                cullDistance: max(24, sound.farRadius * 1.3))
+            mixer.distanceModelParameters = distanceModel
+            mixer.gain = Double(max(0, min(1, Float(sound.volume) * worldVolume)))
+
             let sampler = PHASESamplerNodeDefinition(
-                soundAssetIdentifier: assetID, mixerDefinition: spatialMixer)
+                soundAssetIdentifier: assetID, mixerDefinition: mixer)
             sampler.playbackMode = sound.loops ? .looping : .oneShot
             try engine.assetRegistry.registerSoundEventAsset(rootNode: sampler, identifier: eventID)
 
@@ -73,7 +80,7 @@ final class SpatialAudioEngine {
 
             let mixerParameters = PHASEMixerParameters()
             mixerParameters.addSpatialMixerParameters(
-                identifier: spatialMixer.identifier, source: source, listener: listener)
+                identifier: mixer.identifier, source: source, listener: listener)
             let event = try PHASESoundEvent(engine: engine, assetIdentifier: eventID,
                                             mixerParameters: mixerParameters)
             event.start()

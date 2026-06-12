@@ -103,6 +103,10 @@ struct SettingsView: View {
                                   range: 1.0...4.0, theme: theme)
                     labeledSlider("Narration speed", value: $appModel.vault.calibration.speechRate,
                                   range: 0.6...1.5, theme: theme)
+                    labeledSlider("Voice volume", value: $appModel.vault.calibration.narrationVolume,
+                                  range: 0.4...1.0, theme: theme)
+                    labeledSlider("World sounds", value: $appModel.vault.calibration.worldVolume,
+                                  range: 0.1...1.0, theme: theme)
 
                     ThemedSegments(theme: theme, options: [
                         ("Glow on dark", ContrastTheme.lightOnDark),

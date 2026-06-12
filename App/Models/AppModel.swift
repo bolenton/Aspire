@@ -82,7 +82,7 @@ final class AppModel: ObservableObject {
               let companion = availableCompanions.first(where: { $0.id == slot.companionID }) else {
             return nil
         }
-        return GameViewModel(
+        let game = GameViewModel(
             slot: slot, pack: pack, companion: companion,
             childName: childName, narrator: narrator, brain: makeBrain(),
             sharedMemories: { [weak self] in self?.vault.sharedJournal.events ?? [] },
@@ -94,6 +94,8 @@ final class AppModel: ObservableObject {
                 self?.vault.update(updated)
                 self?.saveVault()
             })
+        game.audio.worldVolume = Float(vault.calibration.worldVolume)
+        return game
     }
 
     // MARK: - Freeze and explain (two-finger hold, works everywhere)
@@ -183,8 +185,10 @@ final class AppModel: ObservableObject {
         }
     }
 
-    /// Parent-settings smoke test: asks the active brain one question with a
-    /// tiny grounded context and reports who answered.
+    /// Parent-settings connection test. HONEST on purpose: a configured
+    /// server is called directly with no scripted fallback, so a broken
+    /// connection reports its real error instead of being silently covered
+    /// for — exactly the masking that makes "it acts like it works" bugs.
     func testBrain() async -> String {
         guard let companion = availableCompanions.first else {
             return "No companions loaded — check the story pack."
@@ -196,12 +200,33 @@ final class AppModel: ObservableObject {
             ambientSounds: ["a gentle breeze"])
         let context = CompanionContext(companion: companion, childName: childName,
                                        snapshot: snapshot)
+        let question = "Hello! Please introduce yourself in one short, friendly sentence."
+        let brain = makeBrain()
+
+        if let remote = brain as? OpenAICompatibleBrain {
+            do {
+                let reply = try await remote.directReply(to: question, context: context)
+                narrator.speak(reply, voice: companion.resolvedVoice)
+                return "✓ Your server answered — \(remote.model) is live and will power the companion.\n\(companion.name) says: “\(reply)”"
+            } catch {
+                return """
+                ✗ Your server did NOT answer (\(error.localizedDescription)).
+                The game still works — the built-in storyteller covers automatically — but your model isn't being used yet. Checks:
+                • iPad and server on the same Wi-Fi
+                • Endpoint ends in /v1 (e.g. http://your-mac.local:11434/v1)
+                • Ollama/LM Studio is running and serving the network (`OLLAMA_HOST=0.0.0.0 ollama serve`)
+                • iPad Settings → Privacy & Security → Local Network → allow Lantern
+                """
+            }
+        }
+
         do {
-            let reply = try await makeBrain().reply(to: "Hello! Who are you?", context: context)
+            let reply = try await brain.reply(to: question, context: context)
             narrator.speak(reply, voice: companion.resolvedVoice)
-            return "✓ \(brainStatusDescription)\n\(companion.name) says: “\(reply)”"
+            let who = brain is ScriptedBrain ? "built-in storyteller" : "on-device Apple model"
+            return "✓ Answered by the \(who).\n\(companion.name) says: “\(reply)”"
         } catch {
-            return "✗ No answer (\(error.localizedDescription)). In the game, the built-in storyteller covers for it automatically."
+            return "✗ No answer (\(error.localizedDescription))."
         }
     }
 }

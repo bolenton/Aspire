@@ -3,7 +3,10 @@ import Foundation
 import Speech
 
 /// Tap-to-talk: first tap opens the companion's ears (earcon + streaming
-/// on-device recognition), second tap sends what she said.
+/// on-device recognition with a live transcript), second tap sends
+/// IMMEDIATELY with whatever has been transcribed so far — no waiting on a
+/// "final" recognition result that may never arrive. An empty transcript is
+/// still delivered, so the companion can say "I didn't catch that".
 final class SpeechListener: ObservableObject {
     @Published private(set) var isListening = false
     @Published private(set) var transcript = ""
@@ -30,8 +33,9 @@ final class SpeechListener: ObservableObject {
 
         do {
             let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playAndRecord, mode: .measurement,
-                                    options: [.duckOthers, .defaultToSpeaker])
+            try session.setCategory(.playAndRecord, mode: .default,
+                                    options: [.duckOthers, .defaultToSpeaker,
+                                              .allowBluetooth, .allowBluetoothA2DP])
             try session.setActive(true, options: .notifyOthersOnDeactivation)
 
             let request = SFSpeechAudioBufferRecognitionRequest()
@@ -55,49 +59,36 @@ final class SpeechListener: ObservableObject {
                     guard let self else { return }
                     if let result {
                         self.transcript = result.bestTranscription.formattedString
-                        if result.isFinal {
-                            self.deliverFinal()
-                        }
                     }
-                    if error != nil {
-                        self.deliverFinal()
+                    // Recognition ended on its own (silence timeout, final
+                    // result, or an error) — deliver whatever we heard.
+                    if error != nil || result?.isFinal == true {
+                        self.finishAndSend()
                     }
                 }
             }
         } catch {
-            cleanup()
+            self.onFinal = nil
+            teardown()
         }
     }
 
-    /// Second tap: stop recording and send whatever she said.
+    /// Second tap (or recognition ending on its own): deliver the current
+    /// transcript right now, even when it's empty.
     func finishAndSend() {
-        guard isListening else { return }
-        audioEngine.stop()
-        audioEngine.inputNode.removeTap(onBus: 0)
-        request?.endAudio()
-        // The final result callback delivers; if recognition stalls, deliver
-        // the latest partial after a short grace period.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
-            self?.deliverFinal()
-        }
+        guard let handler = onFinal else { return }
+        onFinal = nil
+        let text = transcript
+        teardown()
+        handler(text)
     }
 
     func cancel() {
         onFinal = nil
-        cleanup()
+        teardown()
     }
 
-    private func deliverFinal() {
-        guard let handler = onFinal else { return }
-        onFinal = nil
-        let text = transcript
-        cleanup()
-        if !text.isEmpty {
-            handler(text)
-        }
-    }
-
-    private func cleanup() {
+    private func teardown() {
         if audioEngine.isRunning {
             audioEngine.stop()
             audioEngine.inputNode.removeTap(onBus: 0)
