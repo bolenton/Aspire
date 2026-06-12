@@ -23,6 +23,21 @@ struct GameView: View {
             WorldView(model: model)
                 .ignoresSafeArea()
 
+            // Touch-anywhere joystick layer. Sits below the UI VStack, so
+            // SwiftUI controls rendered later still get their touches first.
+            TouchControlView(
+                enabled: model.currentDialogue == nil && model.activeSongSpell == nil
+                    && !listener.isListening && !appModel.frozen,
+                onStickChanged: { model.stickChanged($0) },
+                onStickVisualChanged: { model.stickVisual = $0 },
+                onDoubleTap: { model.requestAutopilot() },
+                onAnyTouch: { model.cancelAutopilot(announce: false) })
+                .ignoresSafeArea()
+
+            if let stick = model.stickVisual {
+                stickOverlay(theme, stick: stick)
+            }
+
             VStack(spacing: 16) {
                 header(theme)
 
@@ -57,6 +72,10 @@ struct GameView: View {
                 }
 
                 Spacer(minLength: 0)
+
+                if model.isAutopiloting {
+                    autopilotPill(theme)
+                }
 
                 if let nearby = model.nearbyEntity {
                     Button(actionLabel(for: nearby)) {
@@ -97,6 +116,41 @@ struct GameView: View {
             appModel.activeGame = nil
             model.end()
         }
+    }
+
+    /// The visible joystick: ring at the touch-down point, dot under the
+    /// thumb. Vision confirms — the engage earcon and footsteps carry it.
+    private func stickOverlay(_ theme: Theme, stick: (center: CGPoint, thumb: CGPoint)) -> some View {
+        ZStack {
+            Circle()
+                .stroke(theme.highlight.opacity(0.85), lineWidth: 5)
+                .frame(width: 220, height: 220)
+                .position(stick.center)
+            Circle()
+                .fill(theme.highlight.opacity(0.85))
+                .frame(width: 56, height: 56)
+                .position(stick.thumb)
+        }
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
+    }
+
+    /// Non-interactive status pill while the companion leads — any touch on
+    /// the world layer stops the autopilot, so the pill only informs.
+    private func autopilotPill(_ theme: Theme) -> some View {
+        Text("Walking with \(model.companion.name)… touch to stop")
+            .font(.system(size: theme.fontSize(24), weight: .bold, design: .rounded))
+            .foregroundColor(theme.background)
+            .padding(.vertical, 18)
+            .padding(.horizontal, 30)
+            .background(
+                Capsule()
+                    .fill(theme.accent)
+                    .overlay(Capsule().stroke(theme.accent, lineWidth: 4))
+            )
+            .shadow(color: theme.accent.opacity(0.6), radius: 14)
+            .allowsHitTesting(false)
+            .transition(.opacity)
     }
 
     private func actionLabel(for resolved: ResolvedEntity) -> String {

@@ -24,13 +24,22 @@ final class GameViewModel: ObservableObject {
     /// Bumped whenever the visible world changes (collects, unlocks) so the
     /// 3D view knows to rebuild.
     @Published private(set) var worldRevision = 0
+    /// True while the companion is leading the way to the quest target.
+    @Published private(set) var isAutopiloting = false
+    /// Screen-space joystick ring + thumb dot, mirrored from the touch
+    /// layer — vision confirms what the stick earcons already say.
+    @Published var stickVisual: (center: CGPoint, thumb: CGPoint)?
 
     let pack: StoryPack
     let companion: Companion
     let childName: String
     let audio = SpatialAudioEngine()
     let headTracker = HeadTracker()
+    let loop = GameLoop()
+    let movement = MovementController()
     let narrator: Narrator
+    /// Last moment she did anything at all — WS5's idle nudges read this.
+    var lastInteractionAt = Date()
     private let brain: any CompanionBrain
     private let saveSlot: (SaveSlot) -> Void
     /// Child-level favorites shared across playthroughs (vault journal).
@@ -40,6 +49,18 @@ final class GameViewModel: ObservableObject {
     private var sessionStart = Date()
     private var stepStartedAt = Date()
     private var stepHintsUsed = 0
+
+    /// Movement integrates here every display frame; the published `pose`
+    /// only updates ~20 Hz so SwiftUI isn't re-rendering at 120 Hz.
+    private var workingPose = PlayerPose()
+    private var lastPosePublish = Date.distantPast
+    private var lastSlowTick = Date.distantPast
+    private var wasMoving = false
+    private var stickHeld = false
+    private var footstepFlip = false
+    private var movementFrozen = false
+    /// Hook for WS5's interaction-range enter/leave earcons.
+    private var lastNearbyID: String?
 
     private var tick: TimeInterval { Date().timeIntervalSince(sessionStart) }
 
@@ -83,6 +104,8 @@ final class GameViewModel: ObservableObject {
             self?.headYawDegrees = yaw
             self?.pushListener()
         }
+        loop.onTick = { [weak self] dt in self?.gameTick(dt) }
+        loop.start()
         enterScene()
         stepStartedAt = Date()
     }
@@ -90,7 +113,13 @@ final class GameViewModel: ObservableObject {
     /// Arrival in a scene — on game start and every portal crossing.
     private func enterScene() {
         guard let scene else { return }
+        if movement.isAutopilotActive {
+            // A portal crossing invalidates the old target silently.
+            movement.cancelAutopilot()
+            isAutopiloting = false
+        }
         pose = PlayerPose()
+        workingPose = pose
         headTracker.recenter()
         audio.loadScene(scene, resolved: resolvedEntities)
         pushListener()
@@ -112,6 +141,7 @@ final class GameViewModel: ObservableObject {
     }
 
     func end() {
+        loop.stop()
         headTracker.stop()
         audio.removeAllSources()
         persist()
@@ -151,23 +181,212 @@ final class GameViewModel: ObservableObject {
         SituationReport.spoken(from: snapshot(), companion: companion, childName: childName)
     }
 
-    // MARK: - Movement
+    // MARK: - Game tick
+
+    /// One simulation step per display frame. Publishing is throttled
+    /// because `pose` re-evaluates GameView's body: ~20 Hz while moving
+    /// plus once on stop (WorldView's blend smooths between poses), with
+    /// arrival and nearby checks at 5 Hz.
+    private func gameTick(_ dt: TimeInterval) {
+        guard !movementFrozen, currentDialogue == nil, activeSongSpell == nil else { return }
+
+        let result = movement.integrate(pose: workingPose, deltaTime: dt)
+        let moving = result.pose != workingPose
+        workingPose = result.pose
+        handle(result.events)
+
+        if movement.isAutopilotActive != isAutopiloting {
+            isAutopiloting = movement.isAutopilotActive
+        }
+
+        let now = Date()
+        if moving, now.timeIntervalSince(lastPosePublish) >= 0.05 {
+            lastPosePublish = now
+            pose = workingPose
+            pushListener()
+        } else if !moving, wasMoving {
+            pose = workingPose
+            pushListener()
+        }
+        wasMoving = moving
+
+        if now.timeIntervalSince(lastSlowTick) >= 0.2 {
+            lastSlowTick = now
+            slowTick()
+        }
+    }
+
+    /// The 5 Hz sub-tick: quest arrival plus the nearby-entity scan.
+    /// WS5 (guidance) hooks its near/leave earcons, idle-nudge check, and
+    /// compass facing tick in here.
+    private func slowTick() {
+        checkArrival()
+        let nearbyID = nearbyEntity?.entity.id
+        if nearbyID != lastNearbyID {
+            lastNearbyID = nearbyID
+        }
+    }
+
+    /// Movement events → biome footsteps, earcons, haptics. Buttons and
+    /// the stick both land here, so feedback stays identical.
+    private func handle(_ movementEvents: [MovementController.MovementEvent]) {
+        for event in movementEvents {
+            switch event {
+            case .step:
+                footstepFlip.toggle()
+                SoundBank.shared.play(footstepAsset(), volume: 0.55)
+                HapticsDirector.shared.stepTick()
+            case .turnSnap:
+                SoundBank.shared.play("earcon_turn_tick.wav", volume: 0.35)
+                HapticsDirector.shared.turnSnap()
+            case .boundaryBump:
+                SoundBank.shared.play("earcon_boundary.wav", volume: 0.8)
+                HapticsDirector.shared.boundaryBump()
+            case .autopilotArrived:
+                isAutopiloting = false
+                HapticsDirector.shared.setActive(false)
+                SoundBank.shared.play("earcon_autopilot_stop.wav", volume: 0.7)
+                pose = workingPose
+                pushListener()
+                // Reach/collect steps resolve right away; talk/song targets
+                // hand over to the context button.
+                checkArrival()
+            }
+        }
+    }
+
+    /// Footsteps speak the ground: forest is grass, caves echo on stone,
+    /// the courtyard is flagstone. Two alternating samples per surface
+    /// avoid the machine-gun feel of one repeated hit.
+    private func footstepAsset() -> String {
+        let surface: String
+        switch scene?.environment {
+        case "cave": surface = "cave"
+        case "castle": surface = "stone"
+        default: surface = "grass"
+        }
+        return footstepFlip ? "footstep_\(surface)_b.wav" : "footstep_\(surface).wav"
+    }
+
+    // MARK: - Continuous input (touch stick + autopilot)
+
+    /// Touch-stick input; `nil` = released. A live stick is always hers:
+    /// it cancels autopilot before the movement controller sees it.
+    func stickChanged(_ vector: CGVector?) {
+        lastInteractionAt = Date()
+        if vector != nil, movement.isAutopilotActive {
+            cancelAutopilot(announce: false)
+        }
+        if vector != nil, !stickHeld {
+            stickHeld = true
+            SoundBank.shared.play("earcon_stick_engage.wav", volume: 0.6)
+            HapticsDirector.shared.engage()
+            HapticsDirector.shared.setActive(true)
+        } else if vector == nil, stickHeld {
+            stickHeld = false
+            if !movement.isAutopilotActive {
+                HapticsDirector.shared.setActive(false)
+            }
+        }
+        movement.setJoystick(vector: vector)
+    }
+
+    /// Double-tap: the companion leads the way to the quest target.
+    func requestAutopilot() {
+        lastInteractionAt = Date()
+        guard currentDialogue == nil, activeSongSpell == nil else { return }
+        guard let step = currentStep,
+              let target = resolvedEntities.first(where: { $0.entity.id == step.targetEntityID }) else {
+            narrator.speak("We can go anywhere you like — there's nothing we have to find right now.",
+                           voice: companion.resolvedVoice)
+            return
+        }
+        let name = target.entity.id == StoryConventions.companionPlaceholder
+            ? companion.name : target.entity.name
+        SoundBank.shared.play("earcon_autopilot_start.wav", volume: 0.8)
+        narrator.speak("Hold on tight — I'll lead the way to the \(name)! Touch the screen any time to stop.",
+                       voice: companion.resolvedVoice)
+        movement.startAutopilot(toward: target.entity.id, position: target.entity.position)
+        isAutopiloting = true
+        HapticsDirector.shared.setActive(true)
+    }
+
+    /// Touch-cancel is quiet on purpose — a touch means she wants control,
+    /// and narrating the obvious would be nagging. The soft stop earcon
+    /// still confirms it.
+    func cancelAutopilot(announce: Bool) {
+        lastInteractionAt = Date()
+        guard movement.isAutopilotActive else { return }
+        movement.cancelAutopilot()
+        isAutopiloting = false
+        if !stickHeld {
+            HapticsDirector.shared.setActive(false)
+        }
+        SoundBank.shared.play("earcon_autopilot_stop.wav", volume: 0.6)
+        if announce {
+            narrator.speak("Okay — we'll stop here. You lead!", voice: companion.resolvedVoice)
+        }
+    }
+
+    /// Freeze-and-explain halts the body, not just the audio: stick
+    /// released, autopilot off, simulation paused.
+    func movementFreeze() {
+        lastInteractionAt = Date()
+        movementFrozen = true
+        movement.setJoystick(vector: nil)
+        if movement.isAutopilotActive {
+            movement.cancelAutopilot()
+            isAutopiloting = false
+        }
+        stickHeld = false
+        stickVisual = nil
+        HapticsDirector.shared.setActive(false)
+        loop.stop()
+    }
+
+    func movementResume() {
+        guard movementFrozen else { return }
+        movementFrozen = false
+        loop.start()
+    }
+
+    // MARK: - Movement (fallback buttons + VoiceOver path)
 
     func walk() {
-        let radians = pose.headingDegrees * .pi / 180
-        var position = pose.position
+        lastInteractionAt = Date()
+        let radians = workingPose.headingDegrees * .pi / 180
+        var position = workingPose.position
         position.x += stepLength * sin(radians)
         position.z -= stepLength * cos(radians)
-        position.x = min(max(position.x, -40), 40)
-        position.z = min(max(position.z, -40), 40)
-        pose.position = position
+        let clampedX = min(max(position.x, -40), 40)
+        let clampedZ = min(max(position.z, -40), 40)
+        let bumped = clampedX != position.x || clampedZ != position.z
+        position.x = clampedX
+        position.z = clampedZ
+
+        var stepEvents: [MovementController.MovementEvent] = []
+        if workingPose.position.distance(to: position) > 0.01 {
+            stepEvents.append(.step)
+        }
+        if bumped {
+            stepEvents.append(.boundaryBump)
+        }
+        workingPose.position = position
+        pose = workingPose
         pushListener()
+        handle(stepEvents)
         checkArrival()
     }
 
     func turn(degrees: Double) {
-        pose.headingDegrees = (pose.headingDegrees + degrees).truncatingRemainder(dividingBy: 360)
+        lastInteractionAt = Date()
+        workingPose.headingDegrees = (workingPose.headingDegrees + degrees)
+            .truncatingRemainder(dividingBy: 360)
+        pose = workingPose
         pushListener()
+        // A ±45° button turn always lands on a new sector — same tick as
+        // the stick crossing one.
+        handle([.turnSnap])
     }
 
     /// The nearest interactable thing, for the big context-sensitive button.
@@ -181,7 +400,7 @@ final class GameViewModel: ObservableObject {
     private func checkArrival() {
         guard let step = currentStep, step.goal == .reach || step.goal == .collect,
               let target = resolvedEntities.first(where: { $0.entity.id == step.targetEntityID }),
-              pose.position.distance(to: target.entity.position) <= arrivalDistance else { return }
+              workingPose.position.distance(to: target.entity.position) <= arrivalDistance else { return }
 
         if step.goal == .collect {
             let availability = slot.progress.availability(of: target.entity)
@@ -193,6 +412,13 @@ final class GameViewModel: ObservableObject {
     // MARK: - Interaction
 
     func interactWithNearby() {
+        lastInteractionAt = Date()
+        if movement.isAutopilotActive {
+            // Interacting takes over — the autopilot must not resume
+            // toward a stale target when the dialogue closes.
+            movement.cancelAutopilot()
+            isAutopiloting = false
+        }
         guard let nearby = nearbyEntity else { return }
         let entity = nearby.entity
 
@@ -237,6 +463,7 @@ final class GameViewModel: ObservableObject {
     }
 
     func choose(_ choice: DialogueChoice) {
+        lastInteractionAt = Date()
         if let key = choice.memoryKey, let value = choice.memoryValue {
             // Favorites are about the child and cross playthroughs; story
             // choices stay with this companion's journey.
@@ -293,6 +520,7 @@ final class GameViewModel: ObservableObject {
     }
 
     func sing(note: SolfegeNote) {
+        lastInteractionAt = Date()
         guard let spell = activeSongSpell, !targetNotes.isEmpty else { return }
         SoundBank.shared.playNote(note)
         sungNotes.append(note)
@@ -321,6 +549,7 @@ final class GameViewModel: ObservableObject {
     // MARK: - Asking the companion
 
     func ask(_ utterance: String) {
+        lastInteractionAt = Date()
         let trimmed = utterance.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             narrator.speak("Hmm, I didn't catch that. Tap the button and try asking again!",
@@ -345,6 +574,7 @@ final class GameViewModel: ObservableObject {
     }
 
     func requestHint() {
+        lastInteractionAt = Date()
         stepHintsUsed += 1
         guard let step = currentStep else { return }
         let hint = slot.difficulty.hint(for: step, companionID: companion.id)

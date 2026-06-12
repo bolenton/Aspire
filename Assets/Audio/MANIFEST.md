@@ -77,3 +77,23 @@ stereo files break localization.
 | celebrate_step.wav | placeholder | Quest step sparkle |
 | celebrate_quest.wav | placeholder | Warm quest-complete fanfare |
 | note_do.wav … note_ti.wav | placeholder | Solfège tones C4–B4, warm harmonics (7 files) |
+
+## Movement & controls
+
+Footsteps come in a/b alternates per surface — one repeated hit at walking
+cadence sounds like a machine gun. Biome mapping: forest→grass, cave→cave,
+castle→stone, default grass.
+
+| File | Status | Description | Search terms for final pass |
+|---|---|---|---|
+| footstep_grass.wav | placeholder | Soft grass footstep, filtered noise burst (a) | "footstep grass single soft" |
+| footstep_grass_b.wav | placeholder | Soft grass footstep, alternate (b) | "footstep grass single soft" |
+| footstep_stone.wav | placeholder | Flagstone footstep, crisp tap (a) | "footstep stone single" |
+| footstep_stone_b.wav | placeholder | Flagstone footstep, alternate (b) | "footstep stone single" |
+| footstep_cave.wav | placeholder | Stone footstep with cave echo tail (a) | "footstep cave echo single" |
+| footstep_cave_b.wav | placeholder | Stone footstep with cave echo tail, alternate (b) | "footstep cave echo single" |
+| earcon_stick_engage.wav | placeholder | Touch stick engaged under the thumb (soft pop) | original |
+| earcon_turn_tick.wav | placeholder | Heading crossed a 45° sector (tiny tick) | original |
+| earcon_boundary.wav | placeholder | Soft dull thump at the world's edge | "soft thud muffled" |
+| earcon_autopilot_start.wav | placeholder | Companion leads the way (rising triad) | original |
+| earcon_autopilot_stop.wav | placeholder | Autopilot stopped (gentle falling pair) | original |
