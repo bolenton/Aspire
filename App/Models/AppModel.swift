@@ -91,6 +91,7 @@ final class AppModel: ObservableObject {
         let game = GameViewModel(
             slot: slot, pack: pack, companion: companion,
             childName: childName, narrator: narrator, brain: brain,
+            highContrastWorld: vault.calibration.contrastTheme == .highContrastYellow,
             sharedMemories: { [weak self] in self?.vault.sharedJournal.events ?? [] },
             rememberShared: { [weak self] event in
                 self?.vault.sharedJournal.remember(event)

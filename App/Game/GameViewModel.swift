@@ -34,10 +34,15 @@ final class GameViewModel: ObservableObject {
     let companion: Companion
     let childName: String
     let audio = SpatialAudioEngine()
+    /// Ducks the world under the narrator's voice and the listening mic.
+    let audioMix = AudioMixCoordinator()
     let headTracker = HeadTracker()
     let loop = GameLoop()
     let movement = MovementController()
     let narrator: Narrator
+    /// High-contrast world rendering (calibration `highContrastYellow` theme),
+    /// threaded through to `WorldView`.
+    let highContrastWorld: Bool
     /// Last moment she did anything at all — WS5's idle nudges read this.
     var lastInteractionAt = Date()
     private let brain: any CompanionBrain
@@ -70,6 +75,7 @@ final class GameViewModel: ObservableObject {
 
     init(slot: SaveSlot, pack: StoryPack, companion: Companion, childName: String,
          narrator: Narrator, brain: any CompanionBrain,
+         highContrastWorld: Bool = false,
          sharedMemories: @escaping () -> [MemoryEvent] = { [] },
          rememberShared: @escaping (MemoryEvent) -> Void = { _ in },
          saveSlot: @escaping (SaveSlot) -> Void) {
@@ -79,6 +85,7 @@ final class GameViewModel: ObservableObject {
         self.childName = childName
         self.narrator = narrator
         self.brain = brain
+        self.highContrastWorld = highContrastWorld
         self.sharedMemories = sharedMemories
         self.rememberShared = rememberShared
         self.saveSlot = saveSlot
@@ -100,6 +107,7 @@ final class GameViewModel: ObservableObject {
 
     func begin() {
         audio.start()
+        audioMix.attach(narrator: narrator, audio: audio)
         headTracker.start { [weak self] yaw in
             self?.headYawDegrees = yaw
             self?.pushListener()

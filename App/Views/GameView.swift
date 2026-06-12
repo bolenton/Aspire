@@ -20,7 +20,7 @@ struct GameView: View {
         let theme = appModel.theme
         ZStack {
             theme.background.ignoresSafeArea()
-            WorldView(model: model)
+            WorldView(model: model, highContrast: model.highContrastWorld)
                 .ignoresSafeArea()
 
             // Touch-anywhere joystick layer. Sits below the UI VStack, so
@@ -96,6 +96,9 @@ struct GameView: View {
             }
         }
         .animation(.easeInOut(duration: 0.3), value: showCaptions)
+        .onChange(of: listener.isListening) { _, listening in
+            model.audioMix.setListening(listening)
+        }
         .onChange(of: model.narrator.isSpeaking) { _, speaking in
             if speaking {
                 captionsVisible = true
