@@ -80,6 +80,7 @@ struct SettingsView: View {
     @AppStorage("brain.model") private var brainModel = ""
     @AppStorage("brain.apiKey") private var brainAPIKey = ""
     @AppStorage("brain.provider") private var brainProviderRaw = BrainProviderChoice.auto.rawValue
+    @AppStorage(ControlScheme.storageKey) private var controlSchemeRaw = ControlScheme.joystick.rawValue
     @State private var brainTestResult: String?
     @State private var testingBrain = false
     @State private var personalVoiceEnabled = VoiceDirector.shared.personalVoiceAuthorized
@@ -119,6 +120,17 @@ struct SettingsView: View {
                         ("Balanced", .standard),
                         ("Help early", .eager),
                     ], selection: $appModel.vault.calibration.hintAggressiveness)
+                }
+
+                section("Controls", theme) {
+                    Text("Joystick: hold a thumb anywhere on the world and push to walk — double-tap and her companion leads the way. Buttons sit in the bottom-left corner instead. VoiceOver always uses the buttons.")
+                        .font(.system(size: 14))
+                        .foregroundColor(theme.text.opacity(0.7))
+
+                    ThemedSegments(theme: theme, options: [
+                        ("Joystick (hold anywhere)", ControlScheme.joystick.rawValue),
+                        ("Buttons (bottom-left)", ControlScheme.buttons.rawValue),
+                    ], selection: $controlSchemeRaw)
                 }
 
                 section("Companion voices", theme) {

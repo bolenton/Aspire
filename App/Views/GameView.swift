@@ -7,6 +7,8 @@ struct GameView: View {
     @StateObject private var listener = SpeechListener()
     @State private var captionsPinned = false
     @State private var captionsVisible = true
+    @AppStorage(ControlScheme.storageKey) private var controlSchemeRaw = ControlScheme.joystick.rawValue
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverRunning
 
     init(model: GameViewModel) {
         _model = StateObject(wrappedValue: model)
@@ -14,6 +16,16 @@ struct GameView: View {
 
     private var showCaptions: Bool {
         captionsPinned || captionsVisible || model.narrator.isSpeaking || listener.isListening
+    }
+
+    private var controlScheme: ControlScheme {
+        ControlScheme(rawValue: controlSchemeRaw) ?? .joystick
+    }
+
+    /// The buttons are the VoiceOver movement path, so they always appear
+    /// when VoiceOver runs — the joystick layer goes inert there anyway.
+    private var showMovementButtons: Bool {
+        controlScheme == .buttons || voiceOverRunning
     }
 
     var body: some View {
@@ -26,7 +38,8 @@ struct GameView: View {
             // Touch-anywhere joystick layer. Sits below the UI VStack, so
             // SwiftUI controls rendered later still get their touches first.
             TouchControlView(
-                enabled: model.currentDialogue == nil && model.activeSongSpell == nil
+                enabled: controlScheme == .joystick
+                    && model.currentDialogue == nil && model.activeSongSpell == nil
                     && !listener.isListening && !appModel.frozen,
                 onStickChanged: { model.stickChanged($0) },
                 onStickVisualChanged: { model.stickVisual = $0 },
@@ -215,13 +228,22 @@ struct GameView: View {
         }
     }
 
+    /// Bottom bar: the movement cluster hugs the left (and only exists in
+    /// button mode or under VoiceOver), the talk button hugs the right —
+    /// the bottom middle stays clear for the joystick and the world.
     private func controls(_ theme: Theme) -> some View {
-        controlsRow(theme)
-            .padding(12)
-            .background(RoundedRectangle(cornerRadius: 26).fill(theme.background.opacity(0.82)))
+        HStack(alignment: .bottom, spacing: 18) {
+            if showMovementButtons {
+                movementCluster(theme)
+            }
+            Spacer(minLength: 0)
+            talkButton(theme)
+                .padding(12)
+                .background(RoundedRectangle(cornerRadius: 26).fill(theme.background.opacity(0.82)))
+        }
     }
 
-    private func controlsRow(_ theme: Theme) -> some View {
+    private func movementCluster(_ theme: Theme) -> some View {
         HStack(spacing: 18) {
             controlButton(theme, system: "arrow.turn.up.left", label: "Turn left") {
                 model.turn(degrees: -45)
@@ -232,10 +254,13 @@ struct GameView: View {
             controlButton(theme, system: "arrow.turn.up.right", label: "Turn right") {
                 model.turn(degrees: 45)
             }
+        }
+        .padding(12)
+        .background(RoundedRectangle(cornerRadius: 26).fill(theme.background.opacity(0.82)))
+    }
 
-            Spacer()
-
-            Button {
+    private func talkButton(_ theme: Theme) -> some View {
+        Button {
                 if listener.isListening {
                     SoundBank.shared.play("earcon_listen_stop.wav")
                     listener.finishAndSend()
@@ -267,7 +292,6 @@ struct GameView: View {
             .accessibilityLabel(model.isThinking ? "\(model.companion.name) is thinking"
                                 : listener.isListening ? "Tap when done talking"
                                 : "Talk to \(model.companion.name)")
-        }
     }
 
     private func controlButton(_ theme: Theme, system: String, label: String,
