@@ -82,9 +82,15 @@ final class AppModel: ObservableObject {
               let companion = availableCompanions.first(where: { $0.id == slot.companionID }) else {
             return nil
         }
+        let brain = makeBrain()
+        if let remote = brain as? OpenAICompatibleBrain {
+            // Make sure the Local Network permission is requested before her
+            // first spoken question needs the server.
+            Task { await LocalNetworkPrompter.prime(endpoint: remote.endpoint) }
+        }
         let game = GameViewModel(
             slot: slot, pack: pack, companion: companion,
-            childName: childName, narrator: narrator, brain: makeBrain(),
+            childName: childName, narrator: narrator, brain: brain,
             sharedMemories: { [weak self] in self?.vault.sharedJournal.events ?? [] },
             rememberShared: { [weak self] event in
                 self?.vault.sharedJournal.remember(event)
@@ -204,18 +210,30 @@ final class AppModel: ObservableObject {
         let brain = makeBrain()
 
         if let remote = brain as? OpenAICompatibleBrain {
+            // Knock with a raw connection first: this is what makes iOS show
+            // the Local Network permission prompt and list Lantern in
+            // Settings — URLSession alone often fails without ever asking.
+            await LocalNetworkPrompter.prime(endpoint: remote.endpoint)
             do {
                 let reply = try await remote.directReply(to: question, context: context)
                 narrator.speak(reply, voice: companion.resolvedVoice)
                 return "✓ Your server answered — \(remote.model) is live and will power the companion.\n\(companion.name) says: “\(reply)”"
             } catch {
+                let hint: String
+                switch (error as? URLError)?.code {
+                case .some(.notConnectedToInternet), .some(.networkConnectionLost), .some(.dataNotAllowed):
+                    hint = "iOS is blocking Lantern's local network access. The permission request was just triggered — check iPad Settings → Privacy & Security → Local Network and turn Lantern ON, then test again. If Lantern still isn't listed: delete the app, restart the iPad, reinstall."
+                case .some(.cannotFindHost), .some(.dnsLookupFailed):
+                    hint = "That server name couldn't be found. Use your Mac's IP address instead of a name — on the Mac run `ipconfig getifaddr en0`, then use e.g. http://192.168.1.23:11434/v1."
+                case .some(.cannotConnectToHost), .some(.timedOut):
+                    hint = "The iPad reached the network but the server didn't answer. Ollama only listens on the Mac itself by default — restart it with: OLLAMA_HOST=0.0.0.0 ollama serve (and check the Mac's firewall)."
+                default:
+                    hint = "Checks: same Wi-Fi · endpoint ends in /v1 · server running with OLLAMA_HOST=0.0.0.0 · Local Network allowed for Lantern in iPad Settings."
+                }
                 return """
                 ✗ Your server did NOT answer (\(error.localizedDescription)).
-                The game still works — the built-in storyteller covers automatically — but your model isn't being used yet. Checks:
-                • iPad and server on the same Wi-Fi
-                • Endpoint ends in /v1 (e.g. http://your-mac.local:11434/v1)
-                • Ollama/LM Studio is running and serving the network (`OLLAMA_HOST=0.0.0.0 ollama serve`)
-                • iPad Settings → Privacy & Security → Local Network → allow Lantern
+                The game still works — the built-in storyteller covers automatically — but your model isn't being used yet.
+                \(hint)
                 """
             }
         }
