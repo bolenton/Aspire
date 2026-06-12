@@ -33,16 +33,30 @@ final class SoundBank {
     // MARK: - Music (one track at a time, on its own channel)
 
     private var musicPlayer: AVAudioPlayer?
+    /// Authored music level, kept separate from the duck multiplier so
+    /// releasing a duck restores exactly what was asked for.
+    private var musicBaseVolume: Float = 0.8
+    private var musicDuckFactor: Float = 1.0
 
     func playMusic(_ assetName: String, volume: Float = 0.8, loops: Bool = true) {
         guard let url = url(for: assetName),
               let player = try? AVAudioPlayer(contentsOf: url) else { return }
         musicPlayer?.stop()
+        musicBaseVolume = volume
         player.volume = 0
         player.numberOfLoops = loops ? -1 : 0
         player.play()
-        player.setVolume(volume, fadeDuration: 1.2)
+        // Music started mid-duck fades in already ducked — same contract as
+        // the spatial sources, so a voice in progress is never stepped on.
+        player.setVolume(volume * musicDuckFactor, fadeDuration: 1.2)
         musicPlayer = player
+    }
+
+    /// Duck hook for AudioMixCoordinator: scales the authored music level
+    /// while a voice speaks or the mic listens.
+    func setMusicDuck(_ factor: Float, fade: TimeInterval) {
+        musicDuckFactor = factor
+        musicPlayer?.setVolume(musicBaseVolume * factor, fadeDuration: fade)
     }
 
     func stopMusic(fadeOut: TimeInterval = 0.8) {
