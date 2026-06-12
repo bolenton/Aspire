@@ -35,21 +35,9 @@ enum WorldBuilder {
         return material
     }
 
-    static func ground() -> ModelEntity {
-        let mesh = MeshResource.generatePlane(width: 90, depth: 90)
-        var material = PhysicallyBasedMaterial()
-        material.baseColor = .init(tint: UIColor(red: 0.05, green: 0.09, blue: 0.07, alpha: 1))
-        material.emissiveColor = .init(color: UIColor(red: 0.04, green: 0.10, blue: 0.07, alpha: 1))
-        material.emissiveIntensity = 0.35
-        material.roughness = 1.0
-        let entity = ModelEntity(mesh: mesh, materials: [material])
-        entity.position = SIMD3<Float>(0, 0, 0)
-        return entity
-    }
-
     /// One world object: the bold shape plus a soft additive halo shell.
     /// The halo radius carries the calibrated/adaptive glow boost.
-    static func build(_ resolved: ResolvedEntity, companionName: String,
+    static func build(_ resolved: ResolvedEntity, companion: Companion,
                       glowBoost: Double) -> RealityKit.Entity {
         let root = RealityKit.Entity()
         let entity = resolved.entity
@@ -69,7 +57,13 @@ enum WorldBuilder {
         let spec = entity.visual ?? VisualSpec(shape: "sphere", colorHex: "#FFD24A")
         let tint = color(hex: spec.colorHex)
         let scale = Float(spec.scale)
-        let body = shape(spec.shape, tint: tint, scale: scale)
+        let body: RealityKit.Entity
+        if entity.id == StoryConventions.companionPlaceholder {
+            body = VoxelWorld.critter(species: companion.species, tint: tint)
+        } else {
+            body = shape(spec.shape, tint: tint, scale: scale)
+        }
+        body.name = "body"
         root.addChild(body)
         root.addChild(blobShadow(radius: 0.7 * scale))
 
@@ -89,13 +83,19 @@ enum WorldBuilder {
         let material = glowMaterial(tint, emissive: 2.0)
         switch kind {
         case "tree":
-            let trunk = ModelEntity(mesh: .generateBox(width: 0.35 * scale, height: 2.2 * scale, depth: 0.35 * scale),
+            let trunk = ModelEntity(mesh: .generateBox(width: 0.45 * scale, height: 2.2 * scale, depth: 0.45 * scale),
                                     materials: [glowMaterial(tint, emissive: 1.2)])
             trunk.position.y = 1.1 * scale
-            let canopy = ModelEntity(mesh: .generateSphere(radius: 1.1 * scale),
-                                     materials: [glowMaterial(UIColor(red: 0.45, green: 0.85, blue: 0.45, alpha: 1), emissive: 1.6)])
-            canopy.position.y = 2.6 * scale
+            let canopy = ModelEntity(
+                mesh: .generateBox(width: 2.0 * scale, height: 1.6 * scale, depth: 2.0 * scale, cornerRadius: 0.08),
+                materials: [glowMaterial(UIColor(red: 0.45, green: 0.85, blue: 0.45, alpha: 1), emissive: 1.6)])
+            canopy.position.y = 1.9 * scale
+            let cap = ModelEntity(
+                mesh: .generateBox(width: 1.1 * scale, height: 0.8 * scale, depth: 1.1 * scale),
+                materials: [glowMaterial(UIColor(red: 0.55, green: 0.92, blue: 0.50, alpha: 1), emissive: 1.8)])
+            cap.position.y = 3.0 * scale
             trunk.addChild(canopy)
+            trunk.addChild(cap)
             return trunk
         case "door":
             let door = ModelEntity(mesh: .generateBox(width: 1.1 * scale, height: 1.8 * scale, depth: 0.25 * scale, cornerRadius: 0.1),
@@ -121,18 +121,23 @@ enum WorldBuilder {
             ribbon.position.y = 0.03
             return ribbon
         case "mound":
-            let mound = ModelEntity(mesh: .generateSphere(radius: 0.8 * scale), materials: [material])
-            mound.scale = SIMD3<Float>(1.0, 0.45, 1.0)
-            mound.position.y = 0.2 * scale
+            let mound = ModelEntity(
+                mesh: .generateBox(width: 1.4 * scale, height: 0.6 * scale, depth: 1.4 * scale, cornerRadius: 0.1),
+                materials: [material])
+            mound.position.y = 0.3 * scale
             return mound
         case "nest":
-            let nest = ModelEntity(mesh: .generateSphere(radius: 0.5 * scale), materials: [material])
-            nest.scale = SIMD3<Float>(1.0, 0.55, 1.0)
+            let nest = ModelEntity(
+                mesh: .generateBox(width: 0.9 * scale, height: 0.45 * scale, depth: 0.9 * scale, cornerRadius: 0.12),
+                materials: [material])
             return nest
-        default: // "sphere" and anything unknown
-            let orb = ModelEntity(mesh: .generateSphere(radius: 0.6 * scale), materials: [material])
-            orb.position.y = 0.8 * scale
-            return orb
+        default: // "sphere" and anything unknown: a chunky floating cube,
+                 // spun slowly by the world view — the classic pickup look.
+            let cube = ModelEntity(
+                mesh: .generateBox(width: 0.9 * scale, height: 0.9 * scale, depth: 0.9 * scale, cornerRadius: 0.06),
+                materials: [material])
+            cube.position.y = 0.8 * scale
+            return cube
         }
     }
 
@@ -154,24 +159,6 @@ enum WorldBuilder {
         return shadow
     }
 
-    /// Her visible self: a small bright traveler so "where am I?" always has
-    /// a visual answer in the third-person view.
-    static func playerMarker() -> RealityKit.Entity {
-        let root = RealityKit.Entity()
-        let body = ModelEntity(
-            mesh: .generateBox(width: 0.5, height: 0.95, depth: 0.4, cornerRadius: 0.2),
-            materials: [glowMaterial(UIColor(red: 1.0, green: 0.82, blue: 0.29, alpha: 1), emissive: 2.4)])
-        body.position.y = 0.55
-        let head = ModelEntity(
-            mesh: .generateSphere(radius: 0.27),
-            materials: [glowMaterial(UIColor(red: 1.0, green: 0.96, blue: 0.86, alpha: 1), emissive: 3.0)])
-        head.position.y = 1.28
-        root.addChild(body)
-        root.addChild(head)
-        root.addChild(blobShadow(radius: 0.55))
-        return root
-    }
-
     /// Tall translucent pillar of light over the quest target — readable from
     /// anywhere in the scene, the classic "go here" cue.
     static func questBeacon() -> ModelEntity {
@@ -180,22 +167,5 @@ enum WorldBuilder {
             materials: [haloMaterial(UIColor(red: 1.0, green: 0.85, blue: 0.35, alpha: 1), opacity: 0.3)])
         pillar.position.y = 7
         return pillar
-    }
-
-    /// A grid of dim moss-lights on the ground: cheap motion parallax so
-    /// walking visibly LOOKS like moving.
-    static func groundDots() -> RealityKit.Entity {
-        let root = RealityKit.Entity()
-        let material = glowMaterial(UIColor(red: 0.25, green: 0.55, blue: 0.40, alpha: 1), emissive: 0.9)
-        let mesh = MeshResource.generateSphere(radius: 0.14)
-        for x in stride(from: -25, through: 25, by: 5) {
-            for z in stride(from: -25, through: 25, by: 5) {
-                let dot = ModelEntity(mesh: mesh, materials: [material])
-                dot.scale = SIMD3<Float>(1.0, 0.18, 1.0)
-                dot.position = SIMD3<Float>(Float(x), 0.02, Float(z))
-                root.addChild(dot)
-            }
-        }
-        return root
     }
 }

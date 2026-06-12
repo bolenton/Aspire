@@ -4,10 +4,11 @@ import StoryEngine
 import SwiftUI
 import UIKit
 
-/// The glowing first-person world. Non-AR RealityKit camera glides with her
-/// pose; entities rebuild when the world changes (collects, unlocks); the
-/// quest target's halo breathes; fireflies drift like tiny lanterns.
-/// Vision confirms — the audio remains the world.
+/// The chunky voxel world, third-person. Each scene builds its biome
+/// deterministically (forest meadow, crystal cave, walled courtyard); story
+/// entities rebuild when the world changes; her blocky adventurer bobs as
+/// she walks; items spin like pickups; the quest beacon stays readable from
+/// anywhere. Vision confirms — the audio remains the world.
 struct WorldView: UIViewRepresentable {
     @ObservedObject var model: GameViewModel
 
@@ -17,7 +18,6 @@ struct WorldView: UIViewRepresentable {
 
     func makeUIView(context: Context) -> ARView {
         let arView = ARView(frame: .zero, cameraMode: .nonAR, automaticallyConfigureSession: false)
-        arView.environment.background = .color(UIColor(red: 0.03, green: 0.03, blue: 0.09, alpha: 1))
         arView.isUserInteractionEnabled = false
         context.coordinator.attach(to: arView)
         sync(context.coordinator)
@@ -30,10 +30,11 @@ struct WorldView: UIViewRepresentable {
 
     private func sync(_ coordinator: Coordinator) {
         coordinator.setCameraTarget(pose: model.pose)
+        coordinator.setScene(id: model.scene?.id, environment: model.scene?.environment)
         if coordinator.builtRevision != model.worldRevision {
             coordinator.rebuildEntities(
                 resolved: model.resolvedEntities,
-                companionName: model.companion.name,
+                companion: model.companion,
                 glowBoost: model.slot.difficulty.support.glowBoost,
                 questTargetID: model.currentStep?.targetEntityID,
                 revision: model.worldRevision)
@@ -46,17 +47,22 @@ struct WorldView: UIViewRepresentable {
         private weak var arView: ARView?
         private var worldAnchor: AnchorEntity?
         private var camera: PerspectiveCamera?
+        private var light: DirectionalLight?
         private var playerEntity: RealityKit.Entity?
         private var beacon: ModelEntity?
+        private var terrain: RealityKit.Entity?
         private var entityNodes: [String: RealityKit.Entity] = [:]
+        private var entityKinds: [String: EntityKind] = [:]
         private var fireflies: [(entity: ModelEntity, phase: Float, radius: Float, center: SIMD3<Float>)] = []
         private var updateSubscription: Cancellable?
 
         private(set) var builtRevision = -1
+        private var builtSceneID: String?
         private var questTargetID: String?
         private var targetPosition = SIMD3<Float>(0, 0, 0)
         private var targetYaw: Float = 0
         private var elapsed: Float = 0
+        private var walkPhase: Float = 0
 
         func attach(to arView: ARView) {
             self.arView = arView
@@ -65,10 +71,7 @@ struct WorldView: UIViewRepresentable {
             arView.scene.addAnchor(anchor)
             worldAnchor = anchor
 
-            anchor.addChild(WorldBuilder.ground())
-            anchor.addChild(WorldBuilder.groundDots())
-
-            let player = WorldBuilder.playerMarker()
+            let player = VoxelWorld.playerAvatar()
             anchor.addChild(player)
             playerEntity = player
 
@@ -82,10 +85,11 @@ struct WorldView: UIViewRepresentable {
             light.orientation = simd_quatf(angle: -.pi / 3, axis: SIMD3<Float>(1, 0, 0))
             light.position = SIMD3<Float>(0, 8, 0)
             anchor.addChild(light)
+            self.light = light
 
             let camera = PerspectiveCamera()
             camera.camera.fieldOfViewInDegrees = 70
-            camera.position = targetPosition
+            camera.position = SIMD3<Float>(0, 5.5, 7.5)
             anchor.addChild(camera)
             self.camera = camera
 
@@ -112,18 +116,37 @@ struct WorldView: UIViewRepresentable {
             questTargetID = id
         }
 
-        func rebuildEntities(resolved: [ResolvedEntity], companionName: String,
+        /// Rebuilds the biome when she travels: blocky terrain, scatter, and
+        /// the sky color all come from the scene's environment, seeded by
+        /// the scene id so each place always looks like itself.
+        func setScene(id: String?, environment: String?) {
+            guard let id, id != builtSceneID, let worldAnchor else { return }
+            builtSceneID = id
+
+            terrain?.removeFromParent()
+            let newTerrain = VoxelWorld.terrain(environment: environment, seedKey: id)
+            worldAnchor.addChild(newTerrain)
+            terrain = newTerrain
+
+            let biome = VoxelWorld.biome(for: environment)
+            arView?.environment.background = .color(biome.skyColor)
+            light?.light.intensity = biome.lightIntensity
+        }
+
+        func rebuildEntities(resolved: [ResolvedEntity], companion: Companion,
                              glowBoost: Double, questTargetID: String?, revision: Int) {
             guard let worldAnchor else { return }
             for node in entityNodes.values {
                 node.removeFromParent()
             }
             entityNodes = [:]
+            entityKinds = [:]
             for item in resolved {
-                let node = WorldBuilder.build(item, companionName: companionName,
+                let node = WorldBuilder.build(item, companion: companion,
                                               glowBoost: glowBoost)
                 worldAnchor.addChild(node)
                 entityNodes[item.entity.id] = node
+                entityKinds[item.entity.id] = item.entity.kind
             }
             self.questTargetID = questTargetID
             builtRevision = revision
@@ -145,7 +168,15 @@ struct WorldView: UIViewRepresentable {
             }
 
             if let playerEntity {
-                playerEntity.position += (targetPosition - playerEntity.position) * min(1.0, deltaTime * 6.0)
+                let toTarget = targetPosition - SIMD3<Float>(playerEntity.position.x, 0, playerEntity.position.z)
+                let isWalking = simd_length(toTarget) > 0.08
+                if isWalking {
+                    walkPhase += deltaTime * 11
+                }
+                let bob = isWalking ? abs(sin(walkPhase)) * 0.14 : 0
+                var next = playerEntity.position + toTarget * min(1.0, deltaTime * 6.0)
+                next.y += (bob - next.y) * min(1.0, deltaTime * 12.0)
+                playerEntity.position = next
                 playerEntity.orientation = simd_slerp(
                     playerEntity.orientation,
                     simd_quatf(angle: targetYaw, axis: SIMD3<Float>(0, 1, 0)),
@@ -171,7 +202,24 @@ struct WorldView: UIViewRepresentable {
                     center.z + radius * sin(t))
             }
 
-            // The quest target's halo breathes so her eye can find it.
+            // Living touches: items spin like pickups, the companion critter
+            // hops in place, butterfly wings flap, the quest halo breathes.
+            for (id, node) in entityNodes {
+                guard let body = node.children.first(where: { $0.name == "body" }) else { continue }
+                switch entityKinds[id] {
+                case .item:
+                    body.orientation = simd_quatf(angle: elapsed * 0.9, axis: SIMD3<Float>(0, 1, 0))
+                case .companion:
+                    body.position.y = abs(sin(elapsed * 2.2)) * 0.12
+                    for wing in body.children where wing.name == "wing" {
+                        let flap = sin(elapsed * 9) * 0.6
+                        wing.orientation = simd_quatf(angle: wing.position.x > 0 ? flap : -flap,
+                                                      axis: SIMD3<Float>(0, 0, 1))
+                    }
+                default:
+                    break
+                }
+            }
             if let id = questTargetID, let node = entityNodes[id] {
                 let pulse = 1.0 + 0.18 * sin(elapsed * 2.4)
                 for child in node.children where child.name == "halo" {

@@ -26,7 +26,7 @@ final class Narrator: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         isSpeaking = true
 
         let utterance = AVSpeechUtterance(string: text)
-        let spec = voice ?? VoiceSpec()
+        let spec = voice ?? VoiceDirector.shared.narratorSpec()
         if let identifier = spec.voiceIdentifier,
            let chosen = AVSpeechSynthesisVoice(identifier: identifier) {
             utterance.voice = chosen
@@ -43,7 +43,13 @@ final class Narrator: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     func speakWord(_ word: String, voice: VoiceSpec? = nil) {
         guard !isSpeaking else { return }
         let utterance = AVSpeechUtterance(string: word)
-        utterance.voice = AVSpeechSynthesisVoice(language: (voice ?? VoiceSpec()).languageCode)
+        let spec = voice ?? VoiceDirector.shared.narratorSpec()
+        if let identifier = spec.voiceIdentifier,
+           let chosen = AVSpeechSynthesisVoice(identifier: identifier) {
+            utterance.voice = chosen
+        } else {
+            utterance.voice = AVSpeechSynthesisVoice(language: spec.languageCode)
+        }
         utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.8
         synthesizer.speak(utterance)
     }

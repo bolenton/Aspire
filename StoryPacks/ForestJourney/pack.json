@@ -12,6 +12,7 @@
       "scenes": [
         {
           "id": "fox_hollow",
+          "environment": "forest",
           "name": "Fox Hollow",
           "spokenDescription": {
             "base": "A mossy clearing wrapped in tall whispering trees. Fireflies drift like tiny lanterns.",
@@ -240,6 +241,7 @@
       "scenes": [
         {
           "id": "echo_chamber",
+          "environment": "cave",
           "name": "the Echo Chamber",
           "spokenDescription": {
             "base": "A vast cave where crystals glow like frozen starlight. Every sound comes back to say hello twice.",
@@ -404,6 +406,7 @@
       "scenes": [
         {
           "id": "lantern_courtyard",
+          "environment": "castle",
           "name": "the Lantern Courtyard",
           "spokenDescription": {
             "base": "A grand castle courtyard under the open sky. Banners flap in the wind, and a hundred sleeping lanterns wait for someone to wake the festival.",

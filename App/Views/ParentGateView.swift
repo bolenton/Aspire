@@ -104,19 +104,17 @@ struct SettingsView: View {
                     labeledSlider("Narration speed", value: $appModel.vault.calibration.speechRate,
                                   range: 0.6...1.5, theme: theme)
 
-                    Picker("Colors", selection: $appModel.vault.calibration.contrastTheme) {
-                        Text("Glow on dark").tag(ContrastTheme.lightOnDark)
-                        Text("Dark on light").tag(ContrastTheme.darkOnLight)
-                        Text("Yellow on black").tag(ContrastTheme.highContrastYellow)
-                    }
-                    .pickerStyle(.segmented)
+                    ThemedSegments(theme: theme, options: [
+                        ("Glow on dark", ContrastTheme.lightOnDark),
+                        ("Dark on light", .darkOnLight),
+                        ("Yellow on black", .highContrastYellow),
+                    ], selection: $appModel.vault.calibration.contrastTheme)
 
-                    Picker("Help level", selection: $appModel.vault.calibration.hintAggressiveness) {
-                        Text("Let her explore").tag(HintAggressiveness.gentle)
-                        Text("Balanced").tag(HintAggressiveness.standard)
-                        Text("Help early").tag(HintAggressiveness.eager)
-                    }
-                    .pickerStyle(.segmented)
+                    ThemedSegments(theme: theme, options: [
+                        ("Let her explore", HintAggressiveness.gentle),
+                        ("Balanced", .standard),
+                        ("Help early", .eager),
+                    ], selection: $appModel.vault.calibration.hintAggressiveness)
                 }
 
                 section("Companion voices", theme) {
@@ -135,26 +133,14 @@ struct SettingsView: View {
                         .tint(theme.accent)
                     }
 
+                    voiceRow(id: VoiceDirector.narratorID, name: "Narrator", theme: theme) {
+                        appModel.narrator.speak("Welcome to Lantern, \(appModel.childName)! I'll be telling the story.")
+                    }
+
                     ForEach(appModel.availableCompanions) { companion in
-                        HStack(spacing: 10) {
-                            Text(companion.name)
-                                .font(.system(size: 17, weight: .bold, design: .rounded))
-                                .frame(width: 80, alignment: .leading)
-                            Picker("Voice for \(companion.name)", selection: voiceBinding(for: companion.id)) {
-                                Text("Automatic (best installed)").tag("")
-                                ForEach(availableVoiceIdentifiers, id: \.self) { identifier in
-                                    Text(voiceNames[identifier] ?? identifier).tag(identifier)
-                                }
-                            }
-                            .pickerStyle(.menu)
-                            .tint(theme.highlight)
-                            Spacer()
-                            Button("Hear") {
-                                let line = companion.speechStyle.catchphrases.first ?? companion.introduction
-                                appModel.narrator.speak("\(line)", voice: companion.resolvedVoice)
-                            }
-                            .buttonStyle(.bordered)
-                            .tint(theme.accent)
+                        voiceRow(id: companion.id, name: companion.name, theme: theme) {
+                            let line = companion.speechStyle.catchphrases.first ?? companion.introduction
+                            appModel.narrator.speak("\(line)", voice: companion.resolvedVoice)
                         }
                     }
                 }
@@ -164,27 +150,26 @@ struct SettingsView: View {
                         .font(.system(size: 14))
                         .foregroundColor(theme.text.opacity(0.7))
 
-                    Picker("Brain", selection: $brainProviderRaw) {
-                        ForEach(BrainProviderChoice.allCases, id: \.rawValue) { choice in
-                            Text(choice.label).tag(choice.rawValue)
-                        }
-                    }
-                    .pickerStyle(.segmented)
+                    ThemedSegments(theme: theme,
+                                   options: BrainProviderChoice.allCases.map { ($0.label, $0.rawValue) },
+                                   selection: $brainProviderRaw)
 
                     Text(appModel.brainStatusDescription)
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(theme.highlight)
 
-                    TextField("Endpoint, e.g. http://my-mac.local:11434/v1", text: $brainEndpoint)
-                        .textFieldStyle(.roundedBorder)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
-                    TextField("Model, e.g. gemma3:4b", text: $brainModel)
-                        .textFieldStyle(.roundedBorder)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
-                    SecureField("API key (only for cloud gateways)", text: $brainAPIKey)
-                        .textFieldStyle(.roundedBorder)
+                    if brainProviderRaw == BrainProviderChoice.remote.rawValue {
+                        TextField("Endpoint, e.g. http://my-mac.local:11434/v1", text: $brainEndpoint)
+                            .textFieldStyle(.roundedBorder)
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.never)
+                        TextField("Model, e.g. gemma3:4b", text: $brainModel)
+                            .textFieldStyle(.roundedBorder)
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.never)
+                        SecureField("API key (only for cloud gateways)", text: $brainAPIKey)
+                            .textFieldStyle(.roundedBorder)
+                    }
 
                     Button(testingBrain ? "Asking..." : "Test the companion brain") {
                         testingBrain = true
@@ -228,9 +213,8 @@ struct SettingsView: View {
         .foregroundColor(theme.text)
         .onAppear {
             refreshVoices()
-            for companion in appModel.availableCompanions {
-                voiceOverrides[companion.id] =
-                    VoiceDirector.shared.overrideIdentifier(for: companion.id) ?? ""
+            for id in appModel.availableCompanions.map(\.id) + [VoiceDirector.narratorID] {
+                voiceOverrides[id] = VoiceDirector.shared.overrideIdentifier(for: id) ?? ""
             }
         }
     }
@@ -241,6 +225,55 @@ struct SettingsView: View {
         voiceNames = Dictionary(uniqueKeysWithValues: ranked.map {
             ($0.identifier, VoiceDirector.shared.displayName($0))
         })
+    }
+
+    private func currentVoiceName(for companionID: String) -> String {
+        let override = voiceOverrides[companionID] ?? ""
+        if override.isEmpty { return "Automatic (best installed)" }
+        return voiceNames[override] ?? "Chosen voice"
+    }
+
+    /// One voice row: who it is + Hear preview, with the picker on its own
+    /// line so long voice names never collide with the buttons.
+    private func voiceRow(id: String, name: String, theme: Theme,
+                          hear: @escaping () -> Void) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(name)
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                Spacer()
+                Button("Hear", action: hear)
+                    .buttonStyle(.bordered)
+                    .tint(theme.accent)
+            }
+            Menu {
+                Picker("Voice for \(name)", selection: voiceBinding(for: id)) {
+                    Text("Automatic (best installed)").tag("")
+                    ForEach(availableVoiceIdentifiers, id: \.self) { identifier in
+                        Text(voiceNames[identifier] ?? identifier).tag(identifier)
+                    }
+                }
+            } label: {
+                HStack {
+                    Text(currentVoiceName(for: id))
+                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .foregroundColor(theme.highlight)
+                    Spacer()
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(theme.text.opacity(0.6))
+                }
+                .padding(.vertical, 11)
+                .padding(.horizontal, 14)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(theme.accent.opacity(0.5), lineWidth: 2)
+                )
+            }
+        }
+        .padding(.vertical, 4)
     }
 
     private func voiceBinding(for companionID: String) -> Binding<String> {

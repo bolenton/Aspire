@@ -16,7 +16,7 @@ final class SpeechListener: ObservableObject {
 
     static func requestPermissions() {
         SFSpeechRecognizer.requestAuthorization { _ in }
-        AVAudioSession.sharedInstance().requestRecordPermission { _ in }
+        AVAudioApplication.requestRecordPermission { _ in }
     }
 
     var isAvailable: Bool {

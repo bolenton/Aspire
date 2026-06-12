@@ -137,14 +137,19 @@ public struct Scene: Codable, Equatable, Sendable {
     public var name: String
     /// Spoken when the scene begins and whenever she asks "where am I?"
     public var spokenDescription: FlavoredText
+    /// Visual biome for the 3D world ("forest", "cave", "castle", ...).
+    /// Unknown or missing values fall back to the forest look.
+    public var environment: String?
     public var ambience: [SoundSpec]
     public var entities: [Entity]
 
     public init(id: String, name: String, spokenDescription: FlavoredText,
+                environment: String? = nil,
                 ambience: [SoundSpec] = [], entities: [Entity] = []) {
         self.id = id
         self.name = name
         self.spokenDescription = spokenDescription
+        self.environment = environment
         self.ambience = ambience
         self.entities = entities
     }

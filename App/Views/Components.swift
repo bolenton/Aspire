@@ -147,3 +147,42 @@ struct FreezeGestureView: UIViewRepresentable {
         }
     }
 }
+
+/// High-contrast segmented control that follows the game theme — native
+/// segmented pickers follow the system appearance and vanish against our
+/// dark backgrounds.
+struct ThemedSegments<Value: Hashable>: View {
+    let theme: Theme
+    let options: [(label: String, value: Value)]
+    @Binding var selection: Value
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach(options.indices, id: \.self) { index in
+                let option = options[index]
+                Button {
+                    selection = option.value
+                } label: {
+                    Text(option.label)
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.65)
+                        .foregroundColor(selection == option.value ? theme.background : theme.text)
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 6)
+                        .frame(maxWidth: .infinity)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(selection == option.value ? theme.accent : .clear)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(theme.accent.opacity(selection == option.value ? 1.0 : 0.5),
+                                                lineWidth: 2)
+                                )
+                        )
+                }
+                .accessibilityAddTraits(selection == option.value ? .isSelected : [])
+            }
+        }
+    }
+}

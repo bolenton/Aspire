@@ -11,6 +11,10 @@ import StoryEngine
 final class VoiceDirector {
     static let shared = VoiceDirector()
 
+    /// Pseudo-companion id for the storyteller voice that welcomes her,
+    /// runs the wizard, and narrates outside any companion's mouth.
+    static let narratorID = "narrator"
+
     private let defaults = UserDefaults.standard
     private var autoAssignments: [String: String] = [:]
 
@@ -66,6 +70,21 @@ final class VoiceDirector {
         for (index, companionID) in companionIDs.enumerated() {
             autoAssignments[companionID] = pool[index % pool.count].identifier
         }
+        // The narrator gets the best voice the cast isn't already using.
+        let taken = Set(autoAssignments.values)
+        autoAssignments[Self.narratorID] = pool.first { !taken.contains($0.identifier) }?.identifier
+            ?? pool.first?.identifier
+    }
+
+    /// The storyteller's voice: parent override > auto-assigned best > system
+    /// default. Used whenever no companion is speaking.
+    func narratorSpec() -> VoiceSpec {
+        var spec = VoiceSpec()
+        if let identifier = overrideIdentifier(for: Self.narratorID)
+            ?? autoAssignments[Self.narratorID] {
+            spec.voiceIdentifier = identifier
+        }
+        return spec
     }
 
     /// The roster spec upgraded with the best concrete voice available.
