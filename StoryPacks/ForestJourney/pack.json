@@ -26,7 +26,7 @@
             {
               "asset": "wind_leaves_loop.wav",
               "loops": true,
-              "volume": 0.6,
+              "volume": 0.35,
               "nearRadius": 1.0,
               "farRadius": 1000.0,
               "spokenDescription": "wind in the leaves"
@@ -34,7 +34,7 @@
             {
               "asset": "crickets_loop.wav",
               "loops": true,
-              "volume": 0.45,
+              "volume": 0.25,
               "nearRadius": 1.0,
               "farRadius": 1000.0,
               "spokenDescription": "crickets singing"
@@ -255,7 +255,7 @@
             {
               "asset": "cave_hum_loop.wav",
               "loops": true,
-              "volume": 0.5,
+              "volume": 0.3,
               "nearRadius": 1.0,
               "farRadius": 1000.0,
               "spokenDescription": "the cave's deep hum"
@@ -263,7 +263,7 @@
             {
               "asset": "cave_drips_loop.wav",
               "loops": true,
-              "volume": 0.45,
+              "volume": 0.25,
               "nearRadius": 1.0,
               "farRadius": 1000.0,
               "spokenDescription": "water drips echoing"
@@ -420,7 +420,7 @@
             {
               "asset": "castle_wind_loop.wav",
               "loops": true,
-              "volume": 0.5,
+              "volume": 0.3,
               "nearRadius": 1.0,
               "farRadius": 1000.0,
               "spokenDescription": "wind over the castle walls"
@@ -428,7 +428,7 @@
             {
               "asset": "banners_flap_loop.wav",
               "loops": true,
-              "volume": 0.4,
+              "volume": 0.25,
               "nearRadius": 1.0,
               "farRadius": 1000.0,
               "spokenDescription": "banners flapping"
