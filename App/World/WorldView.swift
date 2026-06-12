@@ -11,6 +11,11 @@ import UIKit
 /// anywhere. Vision confirms — the audio remains the world.
 struct WorldView: UIViewRepresentable {
     @ObservedObject var model: GameViewModel
+    /// High-contrast world mode: near-black ground and sky with forced-yellow
+    /// interactables and white markers. Plain input rather than a model read
+    /// so the calibration wiring lands separately — defaults off, which keeps
+    /// today's look byte-identical until the integrator sets it.
+    var highContrast: Bool = false
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
@@ -30,14 +35,17 @@ struct WorldView: UIViewRepresentable {
 
     private func sync(_ coordinator: Coordinator) {
         coordinator.setCameraTarget(pose: model.pose)
-        coordinator.setScene(id: model.scene?.id, environment: model.scene?.environment)
-        if coordinator.builtRevision != model.worldRevision {
+        coordinator.setScene(id: model.scene?.id, environment: model.scene?.environment,
+                             highContrast: highContrast)
+        if coordinator.builtRevision != model.worldRevision
+            || coordinator.builtHighContrast != highContrast {
             coordinator.rebuildEntities(
                 resolved: model.resolvedEntities,
                 companion: model.companion,
                 glowBoost: model.slot.difficulty.support.glowBoost,
                 questTargetID: model.currentStep?.targetEntityID,
-                revision: model.worldRevision)
+                revision: model.worldRevision,
+                highContrast: highContrast)
         } else {
             coordinator.setQuestTarget(model.currentStep?.targetEntityID)
         }
@@ -57,8 +65,15 @@ struct WorldView: UIViewRepresentable {
         private var updateSubscription: Cancellable?
 
         private(set) var builtRevision = -1
+        private(set) var builtHighContrast = false
         private var builtSceneID: String?
+        private var builtSceneContrast = false
         private var questTargetID: String?
+        /// The target whose marker currently shows the gold chip. Markers
+        /// carry both chip looks from build time; when the quest target
+        /// moves without a world rebuild, the tick re-toggles them here.
+        private var markerTargetApplied: String?
+        private var glowBoost: Float = 1
         private var targetPosition = SIMD3<Float>(0, 0, 0)
         private var targetYaw: Float = 0
         private var elapsed: Float = 0
@@ -119,22 +134,26 @@ struct WorldView: UIViewRepresentable {
         /// Rebuilds the biome when she travels: blocky terrain, scatter, and
         /// the sky color all come from the scene's environment, seeded by
         /// the scene id so each place always looks like itself.
-        func setScene(id: String?, environment: String?) {
-            guard let id, id != builtSceneID, let worldAnchor else { return }
+        func setScene(id: String?, environment: String?, highContrast: Bool) {
+            guard let id, let worldAnchor,
+                  id != builtSceneID || highContrast != builtSceneContrast else { return }
             builtSceneID = id
+            builtSceneContrast = highContrast
 
             terrain?.removeFromParent()
-            let newTerrain = VoxelWorld.terrain(environment: environment, seedKey: id)
+            let newTerrain = VoxelWorld.terrain(environment: environment, seedKey: id,
+                                                highContrast: highContrast)
             worldAnchor.addChild(newTerrain)
             terrain = newTerrain
 
-            let biome = VoxelWorld.biome(for: environment)
+            let biome = VoxelWorld.biome(for: environment, highContrast: highContrast)
             arView?.environment.background = .color(biome.skyColor)
             light?.light.intensity = biome.lightIntensity
         }
 
         func rebuildEntities(resolved: [ResolvedEntity], companion: Companion,
-                             glowBoost: Double, questTargetID: String?, revision: Int) {
+                             glowBoost: Double, questTargetID: String?, revision: Int,
+                             highContrast: Bool) {
             guard let worldAnchor else { return }
             for node in entityNodes.values {
                 node.removeFromParent()
@@ -143,13 +162,18 @@ struct WorldView: UIViewRepresentable {
             entityKinds = [:]
             for item in resolved {
                 let node = WorldBuilder.build(item, companion: companion,
-                                              glowBoost: glowBoost)
+                                              glowBoost: glowBoost,
+                                              isQuestTarget: item.entity.id == questTargetID,
+                                              highContrast: highContrast)
                 worldAnchor.addChild(node)
                 entityNodes[item.entity.id] = node
                 entityKinds[item.entity.id] = item.entity.kind
             }
             self.questTargetID = questTargetID
+            markerTargetApplied = questTargetID
+            self.glowBoost = Float(glowBoost)
             builtRevision = revision
+            builtHighContrast = highContrast
         }
 
         private func tick(deltaTime: Float) {
@@ -224,6 +248,36 @@ struct WorldView: UIViewRepresentable {
                 let pulse = 1.0 + 0.18 * sin(elapsed * 2.4)
                 for child in node.children where child.name == "halo" {
                     child.scale = SIMD3<Float>(repeating: pulse)
+                }
+            }
+
+            // Icon markers: yaw-only billboards (upright is steadier than a
+            // full look-at) that grow with distance so the chip stays legible
+            // from across the meadow, scaled up further at higher support
+            // levels. The gold quest chip follows the CURRENT target — the
+            // target can change without a world rebuild.
+            if let camera {
+                let camPos = camera.position
+                let retarget = markerTargetApplied != questTargetID
+                for (id, node) in entityNodes {
+                    guard let marker = node.children.first(where: { $0.name == "marker" }) else { continue }
+                    let world = node.position + marker.position
+                    let dx = camPos.x - world.x
+                    let dz = camPos.z - world.z
+                    marker.orientation = simd_quatf(angle: atan2(dx, dz),
+                                                    axis: SIMD3<Float>(0, 1, 0))
+                    let distance = simd_length(SIMD3<Float>(dx, camPos.y - world.y, dz))
+                    let size = min(max(distance * 0.085, 0.7), 2.4) * (1 + 0.4 * (glowBoost - 1))
+                    marker.scale = SIMD3<Float>(repeating: size)
+                    if retarget {
+                        for chip in marker.children {
+                            if chip.name == "chip" { chip.isEnabled = id != questTargetID }
+                            if chip.name == "chipQuest" { chip.isEnabled = id == questTargetID }
+                        }
+                    }
+                }
+                if retarget {
+                    markerTargetApplied = questTargetID
                 }
             }
         }
