@@ -66,8 +66,15 @@ public struct OpenAICompatibleBrain: CompanionBrain {
         request.httpBody = try JSONEncoder().encode(body)
 
         let (data, response) = try await URLSession.shared.data(for: request)
-        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+        guard let http = response as? HTTPURLResponse else {
             throw URLError(.badServerResponse)
+        }
+        guard (200..<300).contains(http.statusCode) else {
+            // Surface the server's own words ("model 'x' not found, try
+            // pulling it first") — far more diagnosable than a bare code.
+            let body = String(data: data.prefix(300), encoding: .utf8) ?? ""
+            throw NSError(domain: "OpenAICompatibleBrain", code: http.statusCode,
+                          userInfo: [NSLocalizedDescriptionKey: "HTTP \(http.statusCode) from the server: \(body)"])
         }
         let decoded = try JSONDecoder().decode(ChatResponse.self, from: data)
         guard let content = decoded.choices.first?.message.content else {

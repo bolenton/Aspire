@@ -210,30 +210,25 @@ final class AppModel: ObservableObject {
         let brain = makeBrain()
 
         if let remote = brain as? OpenAICompatibleBrain {
-            // Knock with a raw connection first: this is what makes iOS show
-            // the Local Network permission prompt and list Lantern in
-            // Settings — URLSession alone often fails without ever asking.
-            await LocalNetworkPrompter.prime(endpoint: remote.endpoint)
+            // Raw socket first: triggers the Local Network prompt reliably
+            // AND tells us exactly how far the connection got.
+            let socket = await LocalNetworkPrompter.probe(endpoint: remote.endpoint)
+            guard socket.ok else {
+                return """
+                ✗ Can't reach your server — the connection failed before the AI was even asked.
+                Diagnosis: \(socket.message)
+                If the Local Network dialog has never appeared and Lantern isn't listed in iPad Settings → Privacy & Security → Local Network: delete the app, restart the iPad, reinstall — iOS caches a stuck denial for development builds.
+                """
+            }
             do {
                 let reply = try await remote.directReply(to: question, context: context)
                 narrator.speak(reply, voice: companion.resolvedVoice)
                 return "✓ Your server answered — \(remote.model) is live and will power the companion.\n\(companion.name) says: “\(reply)”"
             } catch {
-                let hint: String
-                switch (error as? URLError)?.code {
-                case .some(.notConnectedToInternet), .some(.networkConnectionLost), .some(.dataNotAllowed):
-                    hint = "iOS is blocking Lantern's local network access. The permission request was just triggered — check iPad Settings → Privacy & Security → Local Network and turn Lantern ON, then test again. If Lantern still isn't listed: delete the app, restart the iPad, reinstall."
-                case .some(.cannotFindHost), .some(.dnsLookupFailed):
-                    hint = "That server name couldn't be found. Use your Mac's IP address instead of a name — on the Mac run `ipconfig getifaddr en0`, then use e.g. http://192.168.1.23:11434/v1."
-                case .some(.cannotConnectToHost), .some(.timedOut):
-                    hint = "The iPad reached the network but the server didn't answer. Ollama only listens on the Mac itself by default — restart it with: OLLAMA_HOST=0.0.0.0 ollama serve (and check the Mac's firewall)."
-                default:
-                    hint = "Checks: same Wi-Fi · endpoint ends in /v1 · server running with OLLAMA_HOST=0.0.0.0 · Local Network allowed for Lantern in iPad Settings."
-                }
                 return """
-                ✗ Your server did NOT answer (\(error.localizedDescription)).
-                The game still works — the built-in storyteller covers automatically — but your model isn't being used yet.
-                \(hint)
+                ✗ The \(socket.message) — so Wi-Fi, permission, and the port are all FINE — but the chat call failed:
+                \(error.localizedDescription)
+                Likely: the endpoint is missing /v1 at the end, or the model name doesn't match the server's (run `ollama list` on the Mac and copy the exact name).
                 """
             }
         }
