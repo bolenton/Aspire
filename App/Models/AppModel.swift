@@ -111,6 +111,7 @@ final class AppModel: ObservableObject {
         narrator.stop()
         SoundBank.shared.play("earcon_freeze.wav")
         if let game = activeGame {
+            game.movementFreeze()
             game.audio.setFrozen(true)
             narrator.speak(game.freezeReport(), voice: game.companion.resolvedVoice)
         } else {
@@ -121,6 +122,7 @@ final class AppModel: ObservableObject {
     func freezeEnded() {
         frozen = false
         activeGame?.audio.setFrozen(false)
+        activeGame?.movementResume()
     }
 
     private var menuSituationDescription: String {

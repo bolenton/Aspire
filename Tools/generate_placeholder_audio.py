@@ -6,12 +6,16 @@ Pure-stdlib synthesis (no numpy/ffmpeg) so it runs anywhere. Output: mono
 These are original works (see ASSETS.md) meant to make the game fully
 playable until the curated/final sound pass replaces them file-by-file.
 
-Usage: python3 Tools/generate_placeholder_audio.py
+Usage: python3 Tools/generate_placeholder_audio.py [cue.wav ...]
+With cue names given, ONLY those cues are (re)generated — existing files
+for every other cue are left byte-identical, so new cues can be added
+without touching audio that has already shipped or been replaced.
 """
 import math
 import os
 import random
 import struct
+import sys
 import wave
 
 SR = 32000
@@ -434,6 +438,90 @@ def clover_soft_hum():
                 vibrato=0.015, vib_rate=3.5, gain=0.8)
 
 
+# --------------------------------------------------- movement and controls
+
+def footstep(noise_low, noise_high, thud_freq, noise_gain=0.8, thud_gain=0.5,
+             noise_decay=0.045):
+    """One footstep: a filtered noise burst over a tiny body thud."""
+    sig = silence(0.22)
+    crunch = shaped(bandpass(white(0.16), noise_low, noise_high),
+                    lambda t: math.exp(-t / noise_decay))
+    mix(sig, crunch, gain=noise_gain)
+    mix(sig, soft_thud(thud_freq, gain=thud_gain))
+    return fade_edges(sig, 0.004)
+
+
+def with_echo(sig, delays=(0.09, 0.19), gains=(0.4, 0.22), tail=0.3):
+    """Mixes muffled delayed copies in — instant 'cave' on any short hit."""
+    out = silence(len(sig) / SR + tail)
+    mix(out, sig)
+    for delay, gain in zip(delays, gains):
+        mix(out, lowpass(sig, 2000), at=delay, gain=gain)
+    return out
+
+
+def footstep_grass():
+    return footstep(900, 3800, 130)
+
+
+def footstep_grass_b():
+    return footstep(750, 3200, 120, noise_decay=0.055)
+
+
+def footstep_stone():
+    return footstep(1400, 6000, 210, noise_gain=0.6, thud_gain=0.7,
+                    noise_decay=0.03)
+
+
+def footstep_stone_b():
+    return footstep(1200, 5200, 190, noise_gain=0.6, thud_gain=0.65,
+                    noise_decay=0.034)
+
+
+def footstep_cave():
+    return with_echo(footstep_stone())
+
+
+def footstep_cave_b():
+    return with_echo(footstep_stone_b(), delays=(0.11, 0.23))
+
+
+def earcon_stick_engage():
+    sig = silence(0.25)
+    mix(sig, tone(660, 0.09, attack=0.005, decay=0.05), at=0.02)
+    mix(sig, fade_edges(bandpass(white(0.03), 1500, 5000), 0.008), at=0.02, gain=0.3)
+    return sig
+
+
+def earcon_turn_tick():
+    sig = silence(0.12)
+    mix(sig, tone(1500, 0.06, attack=0.002, decay=0.018), at=0.01)
+    return sig
+
+
+def earcon_boundary():
+    sig = silence(0.7)
+    mix(sig, soft_thud(85, gain=1.0), at=0.02)
+    mix(sig, tone(110, 0.5, attack=0.01, decay=0.18, sweep_to=70, gain=0.6), at=0.03)
+    mix(sig, lowpass(white(0.06), 600), at=0.02, gain=0.3)
+    return sig
+
+
+def earcon_autopilot_start():
+    sig = silence(1.0)
+    for i, f in enumerate([523, 659, 784]):
+        mix(sig, tone(f, 0.2, partials=((1, 1.0), (2, 0.3)), attack=0.01,
+                      decay=0.14), at=0.05 + i * 0.14)
+    return sig
+
+
+def earcon_autopilot_stop():
+    sig = silence(0.8)
+    mix(sig, tone(784, 0.18, partials=((1, 1.0), (2, 0.3)), attack=0.01, decay=0.13), at=0.05)
+    mix(sig, tone(523, 0.28, partials=((1, 1.0), (2, 0.3)), attack=0.01, decay=0.2), at=0.24)
+    return sig
+
+
 # ------------------------------------------------------------- UI and notes
 
 def earcon_listen_start():
@@ -527,15 +615,35 @@ CUES = {
     "earcon_freeze.wav": earcon_freeze,
     "celebrate_step.wav": celebrate_step,
     "celebrate_quest.wav": celebrate_quest,
+    "footstep_grass.wav": footstep_grass,
+    "footstep_grass_b.wav": footstep_grass_b,
+    "footstep_stone.wav": footstep_stone,
+    "footstep_stone_b.wav": footstep_stone_b,
+    "footstep_cave.wav": footstep_cave,
+    "footstep_cave_b.wav": footstep_cave_b,
+    "earcon_stick_engage.wav": earcon_stick_engage,
+    "earcon_turn_tick.wav": earcon_turn_tick,
+    "earcon_boundary.wav": earcon_boundary,
+    "earcon_autopilot_start.wav": earcon_autopilot_start,
+    "earcon_autopilot_stop.wav": earcon_autopilot_stop,
 }
 
 
 def main():
+    only = set(sys.argv[1:])
+    known = set(CUES) | {f"note_{note}.wav" for note in NOTE_FREQS}
+    unknown = only - known
+    if unknown:
+        sys.exit(f"Unknown cue name(s): {', '.join(sorted(unknown))}")
     os.makedirs(OUT_DIR, exist_ok=True)
     print(f"Generating placeholder audio into {OUT_DIR}")
     for name, builder in CUES.items():
+        if only and name not in only:
+            continue
         write_wav(name, builder())
     for note, freq in NOTE_FREQS.items():
+        if only and f"note_{note}.wav" not in only:
+            continue
         write_wav(f"note_{note}.wav", solfege_note(freq), peak=0.7)
     print("Done.")
 
