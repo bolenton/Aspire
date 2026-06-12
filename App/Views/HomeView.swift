@@ -54,7 +54,13 @@ struct HomeView: View {
             let greeting = appModel.vault.calibration.childName.isEmpty
                 ? "Welcome to Lantern! Ask a grown-up to help you start your first adventure."
                 : "Welcome back to Lantern, \(appModel.childName)!"
-            appModel.narrator.speak(greeting)
+            let musicVolume = Float(appModel.vault.calibration.musicVolume)
+            appModel.narrator.speak(greeting) {
+                SoundBank.shared.playMusic("song1.mp3", volume: musicVolume)
+            }
+        }
+        .onDisappear {
+            SoundBank.shared.stopMusic()
         }
     }
 }

@@ -8,6 +8,7 @@ is intended to be open-sourced, so provenance must be airtight.
 |---|---|---|---|---|---|
 | Assets/Audio/*.wav (all 41 files) | audio | `Tools/generate_placeholder_audio.py` | this project (procedurally synthesized) | original work, CC0 | Placeholder pass — replace file-by-file per Assets/Audio/MANIFEST.md |
 | Assets/Art/{ember,petal,clover}.png | image | _pending — provided by project owner_ | _fill in (note AI generator if used)_ | _fill in_ | Companion portraits; see Assets/Art/README.md |
+| Assets/music/song1.mp3, song2.mp3 | music | composed for Lantern by the project owner | project owner | original work | song1 = title screen (after welcome); song2 unassigned |
 
 ## Rules
 

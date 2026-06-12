@@ -30,11 +30,36 @@ final class SoundBank {
         play(asset, volume: volume)
     }
 
+    // MARK: - Music (one track at a time, on its own channel)
+
+    private var musicPlayer: AVAudioPlayer?
+
+    func playMusic(_ assetName: String, volume: Float = 0.8, loops: Bool = true) {
+        guard let url = url(for: assetName),
+              let player = try? AVAudioPlayer(contentsOf: url) else { return }
+        musicPlayer?.stop()
+        player.volume = 0
+        player.numberOfLoops = loops ? -1 : 0
+        player.play()
+        player.setVolume(volume, fadeDuration: 1.2)
+        musicPlayer = player
+    }
+
+    func stopMusic(fadeOut: TimeInterval = 0.8) {
+        guard let player = musicPlayer else { return }
+        musicPlayer = nil
+        player.setVolume(0, fadeDuration: fadeOut)
+        DispatchQueue.main.asyncAfter(deadline: .now() + fadeOut + 0.1) {
+            player.stop()
+        }
+    }
+
     private func url(for assetName: String) -> URL? {
         if let cached = urlCache[assetName] { return cached }
         let base = (assetName as NSString).deletingPathExtension
         let ext = (assetName as NSString).pathExtension
         let url = Bundle.main.url(forResource: base, withExtension: ext, subdirectory: "Assets/Audio")
+            ?? Bundle.main.url(forResource: base, withExtension: ext, subdirectory: "Assets/music")
             ?? Bundle.main.url(forResource: base, withExtension: ext)
         urlCache[assetName] = url
         return url
