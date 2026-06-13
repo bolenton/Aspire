@@ -34,6 +34,28 @@ final class VoiceDirector {
         }
     }
 
+    // MARK: - Cloud voice column (premium TTS)
+
+    /// Parallel to the AVSpeech override column, keyed the same way: which
+    /// neural voice each companion (and the narrator) speaks with when a
+    /// premium provider is configured. Resolution authority stays here, so
+    /// spec(for:)/narratorSpec() are the single place a cloud voice is chosen.
+    private func cloudVoiceKey(_ companionID: String) -> String {
+        "cloudvoice.\(companionID)"
+    }
+
+    func cloudVoiceID(for companionID: String) -> String? {
+        defaults.string(forKey: cloudVoiceKey(companionID))
+    }
+
+    func setCloudVoiceID(_ voiceID: String?, for companionID: String) {
+        if let voiceID, !voiceID.isEmpty {
+            defaults.set(voiceID, forKey: cloudVoiceKey(companionID))
+        } else {
+            defaults.removeObject(forKey: cloudVoiceKey(companionID))
+        }
+    }
+
     /// English voices, best first. Personal Voices rank above everything —
     /// a parent recorded that one on purpose.
     func rankedVoices() -> [AVSpeechSynthesisVoice] {
@@ -84,6 +106,7 @@ final class VoiceDirector {
             ?? autoAssignments[Self.narratorID] {
             spec.voiceIdentifier = identifier
         }
+        spec.cloudVoiceID = cloudVoiceID(for: Self.narratorID)
         return spec
     }
 
@@ -95,6 +118,7 @@ final class VoiceDirector {
             ?? spec.voiceIdentifier {
             spec.voiceIdentifier = identifier
         }
+        spec.cloudVoiceID = cloudVoiceID(for: companion.id)
         return spec
     }
 

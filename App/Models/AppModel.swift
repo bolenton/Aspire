@@ -1,3 +1,4 @@
+import AVFoundation
 import Foundation
 import StoryEngine
 import SwiftUI
@@ -43,6 +44,7 @@ final class AppModel: ObservableObject {
         }
         narrator.profile = vault.calibration
         VoiceDirector.shared.configureAutoVoices(companionIDs: availableCompanions.map(\.id))
+        narrator.cloudProvider = makeTTSProvider()
     }
 
     private static func loadResource<T>(_ subdirectory: String, file: String,
@@ -143,8 +145,15 @@ final class AppModel: ObservableObject {
 
     @AppStorage("brain.endpoint") var brainEndpoint: String = ""
     @AppStorage("brain.model") var brainModel: String = ""
-    @AppStorage("brain.apiKey") var brainAPIKey: String = ""
     @AppStorage("brain.provider") var brainProviderRaw: String = BrainProviderChoice.auto.rawValue
+
+    /// The brain key now lives in the Keychain. Read-through migration: an
+    /// older build's plaintext default is promoted into the Keychain and the
+    /// default wiped on first access, so it exists in only one place after.
+    var brainAPIKey: String {
+        KeychainStore.migratedValue(account: KeychainStore.Key.brain,
+                                    userDefaultsKey: "brain.apiKey") ?? ""
+    }
 
     var brainProvider: BrainProviderChoice {
         BrainProviderChoice(rawValue: brainProviderRaw) ?? .auto
@@ -243,6 +252,118 @@ final class AppModel: ObservableObject {
             return "✓ Answered by the \(who).\n\(companion.name) says: “\(reply)”"
         } catch {
             return "✗ No answer (\(error.localizedDescription))."
+        }
+    }
+
+    // MARK: - Premium voice configuration (parent settings)
+
+    @AppStorage("tts.provider") var ttsProviderRaw: String = TTSProviderChoice.system.rawValue
+    @AppStorage("tts.elevenlabs.model") var ttsElevenLabsModel: String = ""
+    @AppStorage("tts.openai.endpoint") var ttsOpenAIEndpoint: String = ""
+    @AppStorage("tts.openai.model") var ttsOpenAIModel: String = ""
+
+    var ttsProvider: TTSProviderChoice {
+        TTSProviderChoice(rawValue: ttsProviderRaw) ?? .system
+    }
+
+    /// Builds the configured neural-TTS provider, or nil for the system voice
+    /// (the offline-first default). Mirrors makeBrain(): a missing key or
+    /// endpoint silently means "stay on AVSpeech", never an error.
+    func makeTTSProvider() -> (any TTSProvider)? {
+        switch ttsProvider {
+        case .system:
+            return nil
+        case .elevenLabs:
+            guard let key = KeychainStore.get(KeychainStore.Key.elevenLabs), !key.isEmpty else {
+                return nil
+            }
+            let model = ttsElevenLabsModel.isEmpty ? "eleven_flash_v2_5" : ttsElevenLabsModel
+            var provider = ElevenLabsTTSProvider(apiKey: key, modelID: model)
+            // ElevenLabs bakes speed into the audio; feed it her calibration so
+            // the cache key's speed bucket matches what's actually synthesized.
+            provider.rate = vault.calibration.speechRate
+            return provider
+        case .openAICompatible:
+            guard !ttsOpenAIEndpoint.isEmpty, let url = URL(string: ttsOpenAIEndpoint) else {
+                return nil
+            }
+            let key = KeychainStore.get(KeychainStore.Key.openAI)
+            let model = ttsOpenAIModel.isEmpty ? "gpt-4o-mini-tts" : ttsOpenAIModel
+            return OpenAISpeechTTSProvider(baseURL: url,
+                                           apiKey: (key?.isEmpty ?? true) ? nil : key,
+                                           model: model)
+        }
+    }
+
+    /// Re-reads settings into the narrator. Called when the parent gate
+    /// closes so a just-changed provider/voice takes effect immediately.
+    func reinstallTTSProvider() {
+        narrator.cloudProvider = makeTTSProvider()
+    }
+
+    var ttsStatusDescription: String {
+        switch ttsProvider {
+        case .system:
+            return "Apple's built-in voices — offline, free, always available. Premium voices are an optional upgrade."
+        case .elevenLabs:
+            return makeTTSProvider() != nil
+                ? "ElevenLabs — pick a voice for each companion below."
+                : "Add your ElevenLabs API key below to turn this on."
+        case .openAICompatible:
+            return makeTTSProvider() != nil
+                ? "Speech server: \(ttsOpenAIModel.isEmpty ? "gpt-4o-mini-tts" : ttsOpenAIModel) at \(ttsOpenAIEndpoint)."
+                : "Add the server's address below (OpenAI or a local speech server)."
+        }
+    }
+
+    /// Parent-settings voice test. HONEST like testBrain(): the configured
+    /// provider is called directly with NO AVSpeech fallback, so a bad key or
+    /// unchosen voice reports its real error instead of sounding like it works.
+    func testVoice() async -> String {
+        guard let provider = makeTTSProvider() else {
+            return "Pick a premium provider and add its key first, or leave it on Apple's built-in voices."
+        }
+        let companion = availableCompanions.first
+        let spec = companion?.resolvedVoice ?? VoiceDirector.shared.narratorSpec()
+        guard let voiceID = spec.cloudVoiceID, !voiceID.isEmpty else {
+            return "✗ No premium voice is chosen yet — pick one for \(companion?.name ?? "the narrator") in the list below."
+        }
+        let line = "Hello \(childName)! This is my real voice."
+        do {
+            let audio = try await provider.synthesize(text: line, voiceID: voiceID)
+            playTestAudio(audio)
+            return "✓ \(companion?.name ?? "The narrator") spoke with a premium voice — you should have just heard it."
+        } catch {
+            return """
+            ✗ The premium voice didn't answer:
+            \(error.localizedDescription)
+            Likely: check the API key is correct, or that a voice is chosen for this companion.
+            """
+        }
+    }
+
+    private var testVoicePlayer: AVAudioPlayer?
+
+    private func playTestAudio(_ audio: TTSAudio) {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension(audio.fileExtension)
+        guard (try? audio.data.write(to: url)) != nil,
+              let player = try? AVAudioPlayer(contentsOf: url) else { return }
+        player.volume = Float(min(max(vault.calibration.narrationVolume, 0), 1))
+        player.play()
+        testVoicePlayer = player
+    }
+}
+
+enum TTSProviderChoice: String, CaseIterable {
+    case system, elevenLabs, openAICompatible
+
+    var label: String {
+        switch self {
+        case .system: return "Apple"
+        case .elevenLabs: return "ElevenLabs"
+        case .openAICompatible: return "OpenAI / server"
         }
     }
 }

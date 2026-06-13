@@ -78,7 +78,6 @@ struct SettingsView: View {
 
     @AppStorage("brain.endpoint") private var brainEndpoint = ""
     @AppStorage("brain.model") private var brainModel = ""
-    @AppStorage("brain.apiKey") private var brainAPIKey = ""
     @AppStorage("brain.provider") private var brainProviderRaw = BrainProviderChoice.auto.rawValue
     @State private var brainTestResult: String?
     @State private var testingBrain = false
@@ -86,6 +85,25 @@ struct SettingsView: View {
     @State private var availableVoiceIdentifiers: [String] = []
     @State private var voiceNames: [String: String] = [:]
     @State private var voiceOverrides: [String: String] = [:]
+
+    /// API keys are Keychain-backed (not @AppStorage): a mirror @State holds
+    /// the SecureField text, and edits write straight through to the Keychain.
+    @State private var brainAPIKeyField = ""
+
+    // Premium voices
+    @AppStorage("tts.provider") private var ttsProviderRaw = TTSProviderChoice.system.rawValue
+    @AppStorage("tts.elevenlabs.model") private var ttsElevenLabsModel = ""
+    @AppStorage("tts.openai.endpoint") private var ttsOpenAIEndpoint = ""
+    @AppStorage("tts.openai.model") private var ttsOpenAIModel = ""
+    @State private var elevenLabsKeyField = ""
+    @State private var openAIKeyField = ""
+    @State private var cloudVoices: [TTSVoice] = []
+    @State private var cloudVoiceSelections: [String: String] = [:]
+    @State private var loadingVoices = false
+    @State private var voiceListError: String?
+    @State private var voiceTestResult: String?
+    @State private var testingVoice = false
+    @State private var cacheSizeText = ""
 
     var body: some View {
         let theme = appModel.theme
@@ -171,8 +189,11 @@ struct SettingsView: View {
                             .textFieldStyle(.roundedBorder)
                             .autocorrectionDisabled()
                             .textInputAutocapitalization(.never)
-                        SecureField("API key (only for cloud gateways)", text: $brainAPIKey)
+                        SecureField("API key (only for cloud gateways)", text: $brainAPIKeyField)
                             .textFieldStyle(.roundedBorder)
+                            .onChange(of: brainAPIKeyField) { _, newValue in
+                                KeychainStore.set(newValue, for: KeychainStore.Key.brain)
+                            }
                     }
 
                     Button(testingBrain ? "Asking..." : "Test the companion brain") {
@@ -194,6 +215,8 @@ struct SettingsView: View {
                     }
                 }
 
+                premiumVoiceSection(theme)
+
                 section("About Lantern", theme) {
                     Text("Lantern is an audio-first story adventure built for visually impaired kids — made by a dad for his daughter, and shared free in her honor.")
                         .font(.system(size: 14))
@@ -207,6 +230,8 @@ struct SettingsView: View {
 
                 Button("Done") {
                     appModel.saveVault()
+                    // A just-changed provider or voice takes effect now.
+                    appModel.reinstallTTSProvider()
                     dismiss()
                 }
                 .buttonStyle(GiantButtonStyle(theme: theme))
@@ -217,9 +242,16 @@ struct SettingsView: View {
         .foregroundColor(theme.text)
         .onAppear {
             refreshVoices()
-            for id in appModel.availableCompanions.map(\.id) + [VoiceDirector.narratorID] {
+            let ids = appModel.availableCompanions.map(\.id) + [VoiceDirector.narratorID]
+            for id in ids {
                 voiceOverrides[id] = VoiceDirector.shared.overrideIdentifier(for: id) ?? ""
+                cloudVoiceSelections[id] = VoiceDirector.shared.cloudVoiceID(for: id) ?? ""
             }
+            brainAPIKeyField = appModel.brainAPIKey
+            elevenLabsKeyField = KeychainStore.get(KeychainStore.Key.elevenLabs) ?? ""
+            openAIKeyField = KeychainStore.get(KeychainStore.Key.openAI) ?? ""
+            cacheSizeText = formattedCacheSize()
+            loadCloudVoicesIfPossible()
         }
     }
 
@@ -229,6 +261,204 @@ struct SettingsView: View {
         voiceNames = Dictionary(uniqueKeysWithValues: ranked.map {
             ($0.identifier, VoiceDirector.shared.displayName($0))
         })
+    }
+
+    // MARK: - Premium voices
+
+    private var ttsChoice: TTSProviderChoice {
+        TTSProviderChoice(rawValue: ttsProviderRaw) ?? .system
+    }
+
+    @ViewBuilder
+    private func premiumVoiceSection(_ theme: Theme) -> some View {
+        section("Premium voices (optional)", theme) {
+            Text("Works fully offline without this — Apple's built-in voices are always available. Add a neural-TTS service for richer, more lifelike companions. Lines are cached on the device so each one plays instantly the next time, even with no signal.")
+                .font(.system(size: 14))
+                .foregroundColor(theme.text.opacity(0.7))
+
+            ThemedSegments(theme: theme,
+                           options: TTSProviderChoice.allCases.map { ($0.label, $0.rawValue) },
+                           selection: $ttsProviderRaw)
+
+            Text(appModel.ttsStatusDescription)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(theme.highlight)
+
+            if ttsChoice == .elevenLabs {
+                SecureField("ElevenLabs API key", text: $elevenLabsKeyField)
+                    .textFieldStyle(.roundedBorder)
+                    .onChange(of: elevenLabsKeyField) { _, newValue in
+                        KeychainStore.set(newValue, for: KeychainStore.Key.elevenLabs)
+                    }
+                TextField("Model (default eleven_flash_v2_5)", text: $ttsElevenLabsModel)
+                    .textFieldStyle(.roundedBorder)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+            } else if ttsChoice == .openAICompatible {
+                TextField("Server address, e.g. https://api.openai.com", text: $ttsOpenAIEndpoint)
+                    .textFieldStyle(.roundedBorder)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+                TextField("Model (default gpt-4o-mini-tts)", text: $ttsOpenAIModel)
+                    .textFieldStyle(.roundedBorder)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+                SecureField("API key (leave blank for a keyless local server)", text: $openAIKeyField)
+                    .textFieldStyle(.roundedBorder)
+                    .onChange(of: openAIKeyField) { _, newValue in
+                        KeychainStore.set(newValue, for: KeychainStore.Key.openAI)
+                    }
+            }
+
+            if ttsChoice != .system {
+                HStack {
+                    Button(loadingVoices ? "Loading voices…" : "Refresh voice list") {
+                        loadCloudVoicesIfPossible(force: true)
+                    }
+                    .disabled(loadingVoices)
+                    .buttonStyle(.bordered)
+                    .tint(theme.accent)
+                    Spacer()
+                }
+
+                if let voiceListError {
+                    Text(voiceListError)
+                        .font(.system(size: 13))
+                        .foregroundColor(theme.text.opacity(0.85))
+                }
+
+                cloudVoiceRow(id: VoiceDirector.narratorID, name: "Narrator", theme: theme)
+                ForEach(appModel.availableCompanions) { companion in
+                    cloudVoiceRow(id: companion.id, name: companion.name, theme: theme)
+                }
+
+                Button(testingVoice ? "Speaking…" : "Test the premium voice") {
+                    testingVoice = true
+                    voiceTestResult = nil
+                    Task {
+                        appModel.reinstallTTSProvider()
+                        voiceTestResult = await appModel.testVoice()
+                        testingVoice = false
+                    }
+                }
+                .disabled(testingVoice)
+                .buttonStyle(.borderedProminent)
+                .tint(theme.accent)
+
+                if let voiceTestResult {
+                    Text(voiceTestResult)
+                        .font(.system(size: 14))
+                        .foregroundColor(theme.text.opacity(0.85))
+                }
+            }
+
+            HStack {
+                Text("Voice cache: \(cacheSizeText)")
+                    .font(.system(size: 14, weight: .semibold))
+                Spacer()
+                Button("Clear voice cache") {
+                    appModel.narrator.cache.clear()
+                    cacheSizeText = formattedCacheSize()
+                }
+                .buttonStyle(.bordered)
+                .tint(theme.accent)
+            }
+        }
+    }
+
+    /// One cloud-voice picker row. ElevenLabs voices come from listVoices();
+    /// the OpenAI-compatible provider also offers a free-text field so a local
+    /// server's custom voice names can be entered directly.
+    @ViewBuilder
+    private func cloudVoiceRow(id: String, name: String, theme: Theme) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(name)
+                .font(.system(size: 18, weight: .bold, design: .rounded))
+
+            Menu {
+                Picker("Premium voice for \(name)", selection: cloudVoiceBinding(for: id)) {
+                    Text("None (Apple's voice)").tag("")
+                    ForEach(cloudVoices) { voice in
+                        Text(voice.detail.map { "\(voice.name) — \($0)" } ?? voice.name)
+                            .tag(voice.id)
+                    }
+                }
+            } label: {
+                HStack {
+                    Text(currentCloudVoiceName(for: id))
+                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .foregroundColor(theme.highlight)
+                    Spacer()
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(theme.text.opacity(0.6))
+                }
+                .padding(.vertical, 11)
+                .padding(.horizontal, 14)
+                .background(RoundedRectangle(cornerRadius: 12)
+                    .stroke(theme.accent.opacity(0.5), lineWidth: 2))
+            }
+
+            if ttsChoice == .openAICompatible {
+                TextField("…or type a voice name", text: cloudVoiceBinding(for: id))
+                    .textFieldStyle(.roundedBorder)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+                    .font(.system(size: 14))
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func currentCloudVoiceName(for id: String) -> String {
+        let chosen = cloudVoiceSelections[id] ?? ""
+        if chosen.isEmpty { return "None (Apple's voice)" }
+        if let match = cloudVoices.first(where: { $0.id == chosen }) { return match.name }
+        return chosen
+    }
+
+    private func cloudVoiceBinding(for id: String) -> Binding<String> {
+        Binding(
+            get: { cloudVoiceSelections[id] ?? "" },
+            set: { newValue in
+                cloudVoiceSelections[id] = newValue
+                VoiceDirector.shared.setCloudVoiceID(newValue.isEmpty ? nil : newValue, for: id)
+            })
+    }
+
+    /// Fetches the provider's voice catalog when a key is configured. Honest:
+    /// a failure shows the service's own error, not a silent empty list.
+    private func loadCloudVoicesIfPossible(force: Bool = false) {
+        guard ttsChoice != .system else {
+            cloudVoices = []
+            return
+        }
+        guard let provider = appModel.makeTTSProvider() else {
+            if force { voiceListError = "Add the API key (or server address) first." }
+            return
+        }
+        if loadingVoices { return }
+        if !cloudVoices.isEmpty && !force { return }
+        loadingVoices = true
+        voiceListError = nil
+        Task {
+            do {
+                let voices = try await provider.listVoices()
+                cloudVoices = voices
+                voiceListError = voices.isEmpty ? "The service returned no voices." : nil
+            } catch {
+                cloudVoices = []
+                voiceListError = "Couldn't load voices: \(error.localizedDescription)"
+            }
+            loadingVoices = false
+        }
+    }
+
+    private func formattedCacheSize() -> String {
+        ByteCountFormatter.string(fromByteCount: Int64(appModel.narrator.cache.totalSize),
+                                  countStyle: .file)
     }
 
     private func currentVoiceName(for companionID: String) -> String {

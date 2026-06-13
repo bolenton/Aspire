@@ -10,14 +10,21 @@ public struct VoiceSpec: Codable, Equatable, Sendable {
     /// 0.5...2.0
     public var pitchMultiplier: Double
     public var volume: Double
+    /// The neural-TTS voice this companion speaks with when a premium
+    /// provider is configured. Resolved at runtime by VoiceDirector from a
+    /// parent's pick, never authored in roster JSON — so the synthesized
+    /// Codable decodes a missing key as nil and existing packs are unaffected.
+    public var cloudVoiceID: String?
 
     public init(voiceIdentifier: String? = nil, languageCode: String = "en-US",
-                rate: Double = 0.5, pitchMultiplier: Double = 1.0, volume: Double = 1.0) {
+                rate: Double = 0.5, pitchMultiplier: Double = 1.0, volume: Double = 1.0,
+                cloudVoiceID: String? = nil) {
         self.voiceIdentifier = voiceIdentifier
         self.languageCode = languageCode
         self.rate = rate
         self.pitchMultiplier = pitchMultiplier
         self.volume = volume
+        self.cloudVoiceID = cloudVoiceID
     }
 }
 

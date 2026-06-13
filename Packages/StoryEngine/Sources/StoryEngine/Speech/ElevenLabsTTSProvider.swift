@@ -31,13 +31,17 @@ public struct ElevenLabsTTSProvider: TTSProvider {
 
     // MARK: - Wire formats
 
+    /// ElevenLabs takes `output_format` as a query parameter on the
+    /// with-timestamps endpoint, NOT a body field — a body `output_format`
+    /// is silently ignored and the service falls back to its default codec.
+    static let outputFormat = "mp3_44100_128"
+
     struct SynthesisRequest: Encodable {
         struct VoiceSettings: Encodable {
             var speed: Double
         }
         var text: String
         var model_id: String
-        var output_format: String = "mp3_44100_128"
         var voice_settings: VoiceSettings
     }
 
@@ -70,8 +74,11 @@ public struct ElevenLabsTTSProvider: TTSProvider {
     }
 
     func synthesisRequest(text: String, voiceID: String) throws -> URLRequest {
-        var request = URLRequest(url: baseURL
-            .appendingPathComponent("v1/text-to-speech/\(voiceID)/with-timestamps"))
+        let url = baseURL
+            .appendingPathComponent("v1/text-to-speech/\(voiceID)/with-timestamps")
+        var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        components?.queryItems = [URLQueryItem(name: "output_format", value: Self.outputFormat)]
+        var request = URLRequest(url: components?.url ?? url)
         request.httpMethod = "POST"
         // Generous ceiling; callers enforce their own tighter latency budgets
         // and fall back to AVSpeech long before this fires.
