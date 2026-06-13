@@ -1,4 +1,5 @@
 import Combine
+import Metal
 import RealityKit
 import StoryEngine
 import SwiftUI
@@ -63,6 +64,9 @@ struct WorldView: UIViewRepresentable {
         private var entityKinds: [String: EntityKind] = [:]
         private var fireflies: [(entity: ModelEntity, phase: Float, radius: Float, center: SIMD3<Float>)] = []
         private var updateSubscription: Cancellable?
+        /// Held for the ARView's lifetime so the post-process callback's owner
+        /// stays alive; nil when bloom is off or unsupported on this device.
+        private var bloom: BloomPostProcess?
 
         private(set) var builtRevision = -1
         private(set) var builtHighContrast = false
@@ -107,6 +111,20 @@ struct WorldView: UIViewRepresentable {
             camera.position = SIMD3<Float>(0, 5.5, 7.5)
             anchor.addChild(camera)
             self.camera = camera
+
+            // Bloom: makes her emissive glows actually bloom for low vision.
+            // Hardcoded on (the persisted `bloomEnabled` setting arrives with
+            // the C1 calibration migration), but skipped under Low Power Mode so
+            // we never spend the post-process budget when the battery is tight.
+            // If the device can't build the MPS chain, `BloomPostProcess` is nil
+            // and we never register — rendering is left exactly as it was.
+            let bloomEnabled = true
+            if bloomEnabled, !ProcessInfo.processInfo.isLowPowerModeEnabled,
+               let device = MTLCreateSystemDefaultDevice(),
+               let bloom = BloomPostProcess(device: device) {
+                bloom.register(on: arView)
+                self.bloom = bloom
+            }
 
             for _ in 0..<14 {
                 let firefly = WorldBuilder.firefly()
