@@ -160,6 +160,15 @@ final class GameViewModel: ObservableObject {
         pushListener()
         worldRevision += 1
         refreshCompassTarget()
+        // Warm the premium-voice cache for the lines this scene will speak.
+        // A portal re-enters a scene, so drop any stale warming first. No-ops
+        // entirely when no cloud voice is configured.
+        narrator.prefetcher.cancelAll()
+        narrator.prefetcher.prefetchScene(
+            scene, pack: pack, companion: companion,
+            step: currentStep,
+            questSummary: slot.progress.activeQuest(in: pack)?.spokenSummary.resolved(for: companion.id),
+            extraLines: [])
         events.record(GameEvent(tick: tick, kind: .sceneEntered,
                                 spoken: "You stepped into \(scene.name)."))
         var opening = scene.spokenDescription.resolved(for: companion.id)
@@ -180,6 +189,7 @@ final class GameViewModel: ObservableObject {
         loop.stop()
         headTracker.stop()
         audio.removeAllSources()
+        narrator.prefetcher.cancelAll()
         persist()
     }
 
@@ -596,6 +606,7 @@ final class GameViewModel: ObservableObject {
             case .talk:
                 if let dialogueID = entity.dialogueID, let dialogue = pack.dialogue(id: dialogueID) {
                     currentDialogue = dialogue
+                    narrator.prefetcher.prefetchDialogue(dialogue, pack: pack, companion: companion)
                     return
                 }
             case .song:
@@ -611,6 +622,7 @@ final class GameViewModel: ObservableObject {
 
         if let dialogueID = entity.dialogueID, let dialogue = pack.dialogue(id: dialogueID) {
             currentDialogue = dialogue
+            narrator.prefetcher.prefetchDialogue(dialogue, pack: pack, companion: companion)
         } else if let sense = entity.senseLine, nearby.revealedByAbilityID != nil {
             narrator.speak(sense.resolved(for: companion.id), voice: companion.resolvedVoice)
         }
@@ -634,6 +646,7 @@ final class GameViewModel: ObservableObject {
         }
         if let nextID = choice.nextDialogueID, let next = pack.dialogue(id: nextID) {
             currentDialogue = next
+            narrator.prefetcher.prefetchDialogue(next, pack: pack, companion: companion)
             narrator.speak(next.line.resolved(for: companion.id), voice: companion.resolvedVoice)
         } else {
             currentDialogue = nil
@@ -723,7 +736,11 @@ final class GameViewModel: ObservableObject {
             }
             self.isThinking = false
             self.companionReply = reply
-            self.narrator.speak(reply, voice: self.companion.resolvedVoice)
+            // AI replies aren't prefetched; give the cloud voice a longer budget
+            // so a premium answer is worth the short wait (AVSpeech still takes
+            // over on overrun). All other speak() sites keep the default budget.
+            self.narrator.speak(reply, voice: self.companion.resolvedVoice,
+                                 latencyBudget: Narrator.askLatencyBudget)
         }
     }
 
@@ -772,6 +789,9 @@ final class GameViewModel: ObservableObject {
         } else if let next = currentStep {
             speech += " \(next.intro.resolved(for: companion.id))"
         }
+
+        // Warm the step she just unlocked so its narration plays from disk.
+        narrator.prefetcher.prefetchStep(currentStep, companion: companion)
 
         narrator.speak(speech, voice: companion.resolvedVoice)
         stepStartedAt = Date()
