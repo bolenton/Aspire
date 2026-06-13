@@ -86,11 +86,7 @@ public enum SnapshotBuilder {
     }
 
     static func direction(from pose: PlayerPose, to target: Vec3) -> CompassDirection8 {
-        let dx = target.x - pose.position.x
-        let dz = target.z - pose.position.z
-        guard dx != 0 || dz != 0 else { return .ahead }
-        let worldBearing = atan2(dx, -dz) * 180 / .pi
-        return CompassDirection8.from(relativeBearing: worldBearing - pose.headingDegrees)
+        CompassDirection8.from(relativeBearing: GuidanceMath.relativeBearing(from: pose, to: target))
     }
 
     static func elevation(from position: Vec3, to target: Vec3) -> ElevationBand {

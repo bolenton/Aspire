@@ -70,6 +70,28 @@ final class GameViewModel: ObservableObject {
     /// Hook for WS5's interaction-range enter/leave earcons.
     private var lastNearbyID: String?
 
+    // MARK: - Guidance (WS5)
+
+    /// When the narrator last *finished* speaking — observed from the
+    /// narrator's `isSpeaking` transitions so idle time counts from silence,
+    /// not from her last tap.
+    private var narratorLastFinishedAt = Date()
+    private var narratorWasSpeaking = false
+    /// Spoken nudges this idle streak; raises the hint rung each time and
+    /// resets on any input or step completion. Never counts as struggle.
+    private var consecutiveNudges = 0
+    private var lastNudgeCheck = Date.distantPast
+    /// Last facing tick of the audio compass — paced by `tickInterval`.
+    private var lastFacingTick = Date.distantPast
+    /// Boundary one-liners rotate and are rate-limited so the edge never nags.
+    private var lastBoundaryLine = Date.distantPast
+    private var boundaryLineIndex = 0
+    private let boundaryLines = [
+        "That's the edge of the meadow — everything we need is back the other way!",
+        "We've reached the edge of our world here. Let's turn around and explore back this way!",
+        "Oof, that's as far as it goes over here. Everything fun is behind us!"
+    ]
+
     private var tick: TimeInterval { Date().timeIntervalSince(sessionStart) }
 
     /// Reaching within this distance completes reach/collect steps.
@@ -137,6 +159,7 @@ final class GameViewModel: ObservableObject {
         audio.loadScene(scene, resolved: resolvedEntities)
         pushListener()
         worldRevision += 1
+        refreshCompassTarget()
         events.record(GameEvent(tick: tick, kind: .sceneEntered,
                                 spoken: "You stepped into \(scene.name)."))
         var opening = scene.spokenDescription.resolved(for: companion.id)
@@ -201,6 +224,12 @@ final class GameViewModel: ObservableObject {
     /// plus once on stop (WorldView's blend smooths between poses), with
     /// arrival and nearby checks at 5 Hz.
     private func gameTick(_ dt: TimeInterval) {
+        // The narrator's speaking edge is watched every frame even while an
+        // overlay is open, so the idle clock measures time since real
+        // silence rather than time since her last tap.
+        trackNarratorSpeech()
+        idleNudgeCheck()
+
         guard !movementFrozen, currentDialogue == nil, activeSongSpell == nil else { return }
 
         let result = movement.integrate(pose: workingPose, deltaTime: dt)
@@ -229,15 +258,25 @@ final class GameViewModel: ObservableObject {
         }
     }
 
-    /// The 5 Hz sub-tick: quest arrival plus the nearby-entity scan.
-    /// WS5 (guidance) hooks its near/leave earcons, idle-nudge check, and
-    /// compass facing tick in here.
+    /// The 5 Hz sub-tick: quest arrival, the nearby-entity scan and its
+    /// enter/leave earcons, and the audio-compass facing tick. (The idle
+    /// nudge runs at 1 Hz from `gameTick` so it keeps ticking under overlays.)
     private func slowTick() {
         checkArrival()
         let nearbyID = nearbyEntity?.entity.id
         if nearbyID != lastNearbyID {
+            // A chime when something interactable comes within reach makes
+            // the context button perceivable without looking; leaving is a
+            // softer, quieter tick so backing away never feels like an error.
+            if lastNearbyID == nil, nearbyID != nil {
+                SoundBank.shared.play("earcon_near.wav", volume: 0.8 * Float(audioCueGain))
+                HapticsDirector.shared.interactionRange()
+            } else if lastNearbyID != nil, nearbyID == nil {
+                SoundBank.shared.play("earcon_leave.wav", volume: 0.4 * Float(audioCueGain))
+            }
             lastNearbyID = nearbyID
         }
+        compassFacingTick()
     }
 
     /// Movement events → biome footsteps, earcons, haptics. Buttons and
@@ -255,6 +294,7 @@ final class GameViewModel: ObservableObject {
             case .boundaryBump:
                 SoundBank.shared.play("earcon_boundary.wav", volume: 0.8)
                 HapticsDirector.shared.boundaryBump()
+                speakBoundaryLine()
             case .autopilotArrived:
                 isAutopiloting = false
                 HapticsDirector.shared.setActive(false)
@@ -281,12 +321,113 @@ final class GameViewModel: ObservableObject {
         return footstepFlip ? "footstep_\(surface)_b.wav" : "footstep_\(surface).wav"
     }
 
+    // MARK: - Guidance (WS5)
+
+    /// Deterministic rules decide how much help she gets — the compass and
+    /// earcons ride the same `audioCueGain` the difficulty director raises
+    /// when she is struggling, so they get louder exactly when she needs them.
+    private var support: SupportLevel { slot.difficulty.support }
+    private var audioCueGain: Double { support.audioCueGain }
+
+    /// The current quest target's live world position, if one exists in this
+    /// scene. Used by the audio compass; nil when there's nothing to find.
+    private var currentTargetPosition: Vec3? {
+        guard let step = currentStep else { return nil }
+        return resolvedEntities.first { $0.entity.id == step.targetEntityID }?.entity.position
+    }
+
+    /// Re-anchors the spatial guiding chime on every quest-target change
+    /// (scene entry and step completion). PHASE pans and attenuates it
+    /// naturally, so the target is *heard* off to a side — not just drawn.
+    /// Hardcoded on; the `audioCompassEnabled` setting arrives with C1.
+    private func refreshCompassTarget() {
+        audio.removeSource(id: "compass_target")
+        guard let position = currentTargetPosition else { return }
+        audio.addLoopingSource(
+            id: "compass_target",
+            sound: SoundSpec(asset: "compass_chime_loop.wav", loops: true,
+                             volume: 0.22 * audioCueGain, nearRadius: 1, farRadius: 60),
+            position: position)
+    }
+
+    /// Fires a bright tick whenever she's pointed at the target, accelerating
+    /// as she closes in (`tickInterval`). Heard from her *perception* pose so
+    /// an AirPods head-turn toward the target rewards her. Silent while a
+    /// voice or the mic holds the mix, while autopiloting, and under overlays
+    /// — the chime must never become clutter.
+    private func compassFacingTick() {
+        guard !isAutopiloting, currentDialogue == nil, activeSongSpell == nil,
+              !audioMix.isDucked, let target = currentTargetPosition else { return }
+        let bearing = GuidanceMath.relativeBearing(from: perceptionPose, to: target)
+        guard GuidanceMath.isFacing(bearing) else { return }
+        let distance = perceptionPose.position.distance(to: target)
+        let now = Date()
+        guard now.timeIntervalSince(lastFacingTick) >= GuidanceMath.tickInterval(distance: distance) else { return }
+        lastFacingTick = now
+        SoundBank.shared.play("compass_tick.wav", volume: 0.5 * Float(audioCueGain))
+    }
+
+    /// Every input lands here: it resets the idle clock and the nudge streak,
+    /// so the moment she does anything the companion stops taking initiative.
+    private func noteInteraction() {
+        lastInteractionAt = Date()
+        consecutiveNudges = 0
+    }
+
+    /// Watches the narrator's speaking edge so the idle clock measures time
+    /// since the world actually fell silent. Narrator.swift is owned by
+    /// another workstream, so this observes from the outside.
+    private func trackNarratorSpeech() {
+        let speaking = narrator.isSpeaking
+        if narratorWasSpeaking, !speaking {
+            narratorLastFinishedAt = Date()
+        }
+        narratorWasSpeaking = speaking
+    }
+
+    /// Once a second, when she's been still and quiet too long, the companion
+    /// gently takes initiative — a soft cue, then the next hint rung. This is
+    /// *free* help: it never counts toward `stepHintsUsed` and never logs a
+    /// telemetry sample, so a quiet moment is never held against her.
+    private func idleNudgeCheck() {
+        let now = Date()
+        guard now.timeIntervalSince(lastNudgeCheck) >= 1.0 else { return }
+        lastNudgeCheck = now
+
+        // `audioMix.isDucked` covers both the narrator speaking and the mic
+        // listening — one gate for "a voice currently owns the moment".
+        guard !narrator.isSpeaking, !isThinking, !audioMix.isDucked,
+              currentDialogue == nil, activeSongSpell == nil, !isAutopiloting,
+              let step = currentStep, !step.hintLadder.isEmpty else { return }
+        let idleSince = max(lastInteractionAt, narratorLastFinishedAt)
+        guard now.timeIntervalSince(idleSince) > 25 else { return }
+
+        consecutiveNudges += 1
+        let tier = min(support.hintTier + consecutiveNudges - 1, step.hintLadder.count - 1)
+        let cue = companion.sounds["thinking"] != nil ? "thinking" : "senseAlert"
+        SoundBank.shared.playCue(cue, companion: companion, volume: 0.6)
+        narrator.speak(step.hintLadder[tier].resolved(for: companion.id),
+                       voice: companion.resolvedVoice)
+    }
+
+    /// A friendly rotating line when she pushes into the world edge, at most
+    /// once every 30 s and only when the narrator is idle — the bump earcon
+    /// and haptic already carry the meaning, so this just adds reassurance.
+    private func speakBoundaryLine() {
+        guard !narrator.isSpeaking,
+              Date().timeIntervalSince(lastBoundaryLine) > 30 else { return }
+        lastBoundaryLine = Date()
+        let line = boundaryLines[boundaryLineIndex % boundaryLines.count]
+        boundaryLineIndex += 1
+        narrator.speak(line, voice: companion.resolvedVoice)
+    }
+
     // MARK: - Continuous input (touch stick + autopilot)
 
     /// Touch-stick input; `nil` = released. A live stick is always hers:
     /// it cancels autopilot before the movement controller sees it.
     func stickChanged(_ vector: CGVector?) {
-        lastInteractionAt = Date()
+        noteInteraction()
         if vector != nil, movement.isAutopilotActive {
             cancelAutopilot(announce: false)
         }
@@ -306,7 +447,7 @@ final class GameViewModel: ObservableObject {
 
     /// Double-tap: the companion leads the way to the quest target.
     func requestAutopilot() {
-        lastInteractionAt = Date()
+        noteInteraction()
         guard currentDialogue == nil, activeSongSpell == nil else { return }
         guard let step = currentStep,
               let target = resolvedEntities.first(where: { $0.entity.id == step.targetEntityID }) else {
@@ -328,7 +469,7 @@ final class GameViewModel: ObservableObject {
     /// and narrating the obvious would be nagging. The soft stop earcon
     /// still confirms it.
     func cancelAutopilot(announce: Bool) {
-        lastInteractionAt = Date()
+        noteInteraction()
         guard movement.isAutopilotActive else { return }
         movement.cancelAutopilot()
         isAutopiloting = false
@@ -344,7 +485,7 @@ final class GameViewModel: ObservableObject {
     /// Freeze-and-explain halts the body, not just the audio: stick
     /// released, autopilot off, simulation paused.
     func movementFreeze() {
-        lastInteractionAt = Date()
+        noteInteraction()
         movementFrozen = true
         movement.setJoystick(vector: nil)
         if movement.isAutopilotActive {
@@ -366,7 +507,7 @@ final class GameViewModel: ObservableObject {
     // MARK: - Movement (fallback buttons + VoiceOver path)
 
     func walk() {
-        lastInteractionAt = Date()
+        noteInteraction()
         let radians = workingPose.headingDegrees * .pi / 180
         var position = workingPose.position
         position.x += stepLength * sin(radians)
@@ -392,7 +533,7 @@ final class GameViewModel: ObservableObject {
     }
 
     func turn(degrees: Double) {
-        lastInteractionAt = Date()
+        noteInteraction()
         workingPose.headingDegrees = (workingPose.headingDegrees + degrees)
             .truncatingRemainder(dividingBy: 360)
         pose = workingPose
@@ -425,7 +566,7 @@ final class GameViewModel: ObservableObject {
     // MARK: - Interaction
 
     func interactWithNearby() {
-        lastInteractionAt = Date()
+        noteInteraction()
         if movement.isAutopilotActive {
             // Interacting takes over — the autopilot must not resume
             // toward a stale target when the dialogue closes.
@@ -476,7 +617,7 @@ final class GameViewModel: ObservableObject {
     }
 
     func choose(_ choice: DialogueChoice) {
-        lastInteractionAt = Date()
+        noteInteraction()
         if let key = choice.memoryKey, let value = choice.memoryValue {
             // Favorites are about the child and cross playthroughs; story
             // choices stay with this companion's journey.
@@ -533,7 +674,7 @@ final class GameViewModel: ObservableObject {
     }
 
     func sing(note: SolfegeNote) {
-        lastInteractionAt = Date()
+        noteInteraction()
         guard let spell = activeSongSpell, !targetNotes.isEmpty else { return }
         SoundBank.shared.playNote(note)
         sungNotes.append(note)
@@ -562,7 +703,7 @@ final class GameViewModel: ObservableObject {
     // MARK: - Asking the companion
 
     func ask(_ utterance: String) {
-        lastInteractionAt = Date()
+        noteInteraction()
         let trimmed = utterance.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             narrator.speak("Hmm, I didn't catch that. Tap the button and try asking again!",
@@ -587,7 +728,7 @@ final class GameViewModel: ObservableObject {
     }
 
     func requestHint() {
-        lastInteractionAt = Date()
+        noteInteraction()
         stepHintsUsed += 1
         guard let step = currentStep else { return }
         let hint = slot.difficulty.hint(for: step, companionID: companion.id)
@@ -604,6 +745,9 @@ final class GameViewModel: ObservableObject {
             audio.removeSource(id: targetID)
         }
         worldRevision += 1
+        refreshCompassTarget()
+        // Reaching a goal is real progress — the idle clock starts fresh.
+        consecutiveNudges = 0
         recordTelemetry(kind: kind, succeeded: true)
 
         var speech = completed.celebration.resolved(for: companion.id)
