@@ -522,6 +522,45 @@ def earcon_autopilot_stop():
     return sig
 
 
+# ------------------------------------------------------------------ guidance
+
+def compass_chime_loop():
+    """Sparse two-note bell that PHASE positions at the quest target —
+    a quiet, friendly 'over here' beacon. Mono on purpose: a stereo file
+    would fight the spatializer's panning."""
+    sig = silence(5.0)
+    mix(sig, bell(1568, 1.6), at=0.3, gain=0.6)          # sol
+    mix(sig, bell(2093, 1.8), at=1.0, gain=0.5)          # do, a fourth up
+    mix(sig, bell(1568, 1.4), at=3.2, gain=0.35)
+    return loopify(sig, fade=0.3)
+
+
+def compass_tick():
+    """The facing tick: a tiny bright blip that fires faster as she nears
+    the target. Distinct from the turn tick so the two never blur."""
+    sig = silence(0.14)
+    mix(sig, tone(2349, 0.07, partials=((1, 1.0), (2, 0.3)),
+                  attack=0.002, decay=0.022), at=0.01)
+    return sig
+
+
+def earcon_near():
+    """Walked into reach of something: a rising third that says 'here'."""
+    sig = silence(0.4)
+    mix(sig, tone(784, 0.12, partials=((1, 1.0), (2, 0.3)), attack=0.006, decay=0.08), at=0.02)
+    mix(sig, tone(988, 0.18, partials=((1, 1.0), (2, 0.3)), attack=0.006, decay=0.12), at=0.13)
+    return sig
+
+
+def earcon_leave():
+    """Stepped back out of reach: one soft low tick, quieter than the near
+    chime so leaving never feels like a buzzer."""
+    sig = silence(0.3)
+    mix(sig, tone(523, 0.16, partials=((1, 1.0), (2, 0.25)),
+                  attack=0.008, decay=0.1), at=0.02)
+    return sig
+
+
 # ------------------------------------------------------------- UI and notes
 
 def earcon_listen_start():
@@ -626,6 +665,10 @@ CUES = {
     "earcon_boundary.wav": earcon_boundary,
     "earcon_autopilot_start.wav": earcon_autopilot_start,
     "earcon_autopilot_stop.wav": earcon_autopilot_stop,
+    "compass_chime_loop.wav": compass_chime_loop,
+    "compass_tick.wav": compass_tick,
+    "earcon_near.wav": earcon_near,
+    "earcon_leave.wav": earcon_leave,
 }
 
 

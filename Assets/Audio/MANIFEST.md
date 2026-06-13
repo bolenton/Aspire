@@ -97,3 +97,17 @@ castle→stone, default grass.
 | earcon_boundary.wav | placeholder | Soft dull thump at the world's edge | "soft thud muffled" |
 | earcon_autopilot_start.wav | placeholder | Companion leads the way (rising triad) | original |
 | earcon_autopilot_stop.wav | placeholder | Autopilot stopped (gentle falling pair) | original |
+
+## Guidance
+
+The audio compass makes the quest target audible, not just visible:
+`compass_chime_loop` is a quiet spatial beacon PHASE positions at the target,
+and `compass_tick` fires (faster as she nears) whenever she is pointed at it.
+The near/leave earcons make the context button perceivable without vision.
+
+| File | Status | Description | Search terms for final pass |
+|---|---|---|---|
+| compass_chime_loop.wav | placeholder | Sparse two-note bell beacon at the quest target, MONO (spatialized) | "soft bell beacon loop sparse" |
+| compass_tick.wav | placeholder | Bright facing tick — heard when she points at the target | original |
+| earcon_near.wav | placeholder | Walked into reach of something (rising third) | original |
+| earcon_leave.wav | placeholder | Stepped back out of reach (single soft low tick) | original |
