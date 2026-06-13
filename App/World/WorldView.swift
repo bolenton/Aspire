@@ -24,7 +24,7 @@ struct WorldView: UIViewRepresentable {
     func makeUIView(context: Context) -> ARView {
         let arView = ARView(frame: .zero, cameraMode: .nonAR, automaticallyConfigureSession: false)
         arView.isUserInteractionEnabled = false
-        context.coordinator.attach(to: arView)
+        context.coordinator.attach(to: arView, avatar: model.avatarSpec)
         sync(context.coordinator)
         return arView
     }
@@ -79,14 +79,14 @@ struct WorldView: UIViewRepresentable {
         private var elapsed: Float = 0
         private var walkPhase: Float = 0
 
-        func attach(to arView: ARView) {
+        func attach(to arView: ARView, avatar: AvatarSpec) {
             self.arView = arView
 
             let anchor = AnchorEntity(world: SIMD3<Float>(0, 0, 0))
             arView.scene.addAnchor(anchor)
             worldAnchor = anchor
 
-            let player = VoxelWorld.playerAvatar()
+            let player = VoxelWorld.playerAvatar(spec: avatar)
             anchor.addChild(player)
             playerEntity = player
 

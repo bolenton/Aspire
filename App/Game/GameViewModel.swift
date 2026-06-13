@@ -43,6 +43,9 @@ final class GameViewModel: ObservableObject {
     /// High-contrast world rendering (calibration `highContrastYellow` theme),
     /// threaded through to `WorldView`.
     let highContrastWorld: Bool
+    /// The hero she designed — threaded to `WorldView` so her avatar in the
+    /// world matches her choices.
+    let avatarSpec: AvatarSpec
     /// Last moment she did anything at all — WS5's idle nudges read this.
     var lastInteractionAt = Date()
     private let brain: any CompanionBrain
@@ -76,6 +79,7 @@ final class GameViewModel: ObservableObject {
     init(slot: SaveSlot, pack: StoryPack, companion: Companion, childName: String,
          narrator: Narrator, brain: any CompanionBrain,
          highContrastWorld: Bool = false,
+         avatarSpec: AvatarSpec = AvatarSpec(),
          sharedMemories: @escaping () -> [MemoryEvent] = { [] },
          rememberShared: @escaping (MemoryEvent) -> Void = { _ in },
          saveSlot: @escaping (SaveSlot) -> Void) {
@@ -86,6 +90,7 @@ final class GameViewModel: ObservableObject {
         self.narrator = narrator
         self.brain = brain
         self.highContrastWorld = highContrastWorld
+        self.avatarSpec = avatarSpec
         self.sharedMemories = sharedMemories
         self.rememberShared = rememberShared
         self.saveSlot = saveSlot

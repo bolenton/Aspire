@@ -100,6 +100,7 @@ final class AppModel: ObservableObject {
             slot: slot, pack: pack, companion: companion,
             childName: childName, narrator: narrator, brain: brain,
             highContrastWorld: vault.calibration.contrastTheme == .highContrastYellow,
+            avatarSpec: vault.avatar,
             sharedMemories: { [weak self] in self?.vault.sharedJournal.events ?? [] },
             rememberShared: { [weak self] event in
                 self?.vault.sharedJournal.remember(event)
