@@ -14,8 +14,10 @@ final class ElevenLabsTTSProviderEncodingTests: XCTestCase {
         provider.rate = 1.05
         let request = try provider.synthesisRequest(text: "Hello little fox!", voiceID: "voice123")
 
+        // output_format is a QUERY PARAMETER on the with-timestamps endpoint,
+        // not a body field (A3 bug fix) — a body output_format is ignored.
         XCTAssertEqual(request.url?.absoluteString,
-                       "https://api.elevenlabs.io/v1/text-to-speech/voice123/with-timestamps")
+                       "https://api.elevenlabs.io/v1/text-to-speech/voice123/with-timestamps?output_format=mp3_44100_128")
         XCTAssertEqual(request.httpMethod, "POST")
         XCTAssertEqual(request.value(forHTTPHeaderField: "xi-api-key"), "xi-secret")
         XCTAssertEqual(request.value(forHTTPHeaderField: "Content-Type"), "application/json")
@@ -25,7 +27,7 @@ final class ElevenLabsTTSProviderEncodingTests: XCTestCase {
         let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
         XCTAssertEqual(json["text"] as? String, "Hello little fox!")
         XCTAssertEqual(json["model_id"] as? String, "eleven_flash_v2_5")
-        XCTAssertEqual(json["output_format"] as? String, "mp3_44100_128")
+        XCTAssertNil(json["output_format"], "output_format must live in the URL query, not the body")
         let settings = try XCTUnwrap(json["voice_settings"] as? [String: Any])
         XCTAssertEqual(try XCTUnwrap(settings["speed"] as? Double), 1.05, accuracy: 1e-9)
     }
