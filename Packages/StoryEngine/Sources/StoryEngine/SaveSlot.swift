@@ -36,13 +36,29 @@ public struct PlayerVault: Codable, Equatable, Sendable {
     /// different companion recalls them.
     public var sharedJournal: MemoryJournal
     public var slots: [SaveSlot]
+    /// Her hero's look, designed before the adventure and kept across
+    /// playthroughs — like the shared journal, it's about the child.
+    public var avatar: AvatarSpec
 
     public init(calibration: CalibrationProfile = .standard,
                 sharedJournal: MemoryJournal = MemoryJournal(),
-                slots: [SaveSlot] = []) {
+                slots: [SaveSlot] = [],
+                avatar: AvatarSpec = AvatarSpec()) {
         self.calibration = calibration
         self.sharedJournal = sharedJournal
         self.slots = slots
+        self.avatar = avatar
+    }
+
+    /// Vault decoding must NEVER fail on a missing key: load(from:) falls
+    /// back to a fresh vault on any decode error, which would silently wipe
+    /// her saves. Every field added after 1.0 decodes with a default.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        calibration = try container.decodeIfPresent(CalibrationProfile.self, forKey: .calibration) ?? .standard
+        sharedJournal = try container.decodeIfPresent(MemoryJournal.self, forKey: .sharedJournal) ?? MemoryJournal()
+        slots = try container.decodeIfPresent([SaveSlot].self, forKey: .slots) ?? []
+        avatar = try container.decodeIfPresent(AvatarSpec.self, forKey: .avatar) ?? AvatarSpec()
     }
 
     public var childName: String { calibration.childName }

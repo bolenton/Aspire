@@ -6,6 +6,7 @@ enum AppRoute: Equatable {
     case home
     case calibration
     case companionPicker
+    case avatarDesigner(slotID: String)
     case game(slotID: String)
 }
 
@@ -70,7 +71,14 @@ final class AppModel: ObservableObject {
         slot.progress.activeQuestID = slot.progress.availableQuests(in: pack).first?.id
         vault.update(slot)
         saveVault()
-        route = .game(slotID: slot.id)
+        // Design the hero before the adventure starts — prefilled with her
+        // last look, so returning players just tap "All done".
+        route = .avatarDesigner(slotID: slot.id)
+    }
+
+    func finishAvatarDesign(slotID: String) {
+        saveVault()
+        route = .game(slotID: slotID)
     }
 
     var latestSlot: SaveSlot? {
@@ -134,6 +142,8 @@ final class AppModel: ObservableObject {
             return "You're setting up the game so it feels just right. A grown-up can help with this part."
         case .companionPicker:
             return "You're choosing your companion. Three friends are waiting to meet you — tap each one to hear them say hello."
+        case .avatarDesigner:
+            return "You're designing your hero. Right now you look like \(vault.avatar.spokenDescription). Tap the choices to change anything, then tap All done to start the adventure."
         case .game:
             return "You're in the adventure."
         }

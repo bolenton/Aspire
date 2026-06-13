@@ -32,6 +32,8 @@ struct RootView: View {
                 CalibrationWizardView()
             case .companionPicker:
                 CompanionPickerView()
+            case .avatarDesigner(let slotID):
+                AvatarDesignerView(slotID: slotID)
             case .game(let slotID):
                 if let model = appModel.makeGameViewModel(slotID: slotID) {
                     GameView(model: model)

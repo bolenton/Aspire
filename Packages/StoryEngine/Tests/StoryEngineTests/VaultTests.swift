@@ -79,4 +79,50 @@ final class PlayerVaultTests: XCTestCase {
         XCTAssertEqual(vault.slots, [])
         XCTAssertEqual(vault.calibration, .standard)
     }
+
+    /// The test that protects her save file: a vault written before the
+    /// avatar field existed MUST decode with defaults, never reset.
+    func testOldVaultWithoutAvatarDecodesWithDefaults() throws {
+        let oldFormat = """
+        {
+          "calibration": {
+            "childName": "Aria", "textScale": 2.5, "speechRate": 1.0,
+            "speechPitch": 1.0, "narrationVolume": 1.0, "worldVolume": 1.0,
+            "musicVolume": 0.8, "tapToTalkEnabled": true,
+            "contrastTheme": "lightOnDark", "hintAggressiveness": "standard"
+          },
+          "sharedJournal": { "events": [] },
+          "slots": []
+        }
+        """
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("vault-old-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: url) }
+        try Data(oldFormat.utf8).write(to: url)
+
+        let vault = PlayerVault.load(from: url)
+        XCTAssertEqual(vault.calibration.childName, "Aria",
+                       "old vault must load, not fall back to fresh")
+        XCTAssertEqual(vault.calibration.textScale, 2.5)
+        XCTAssertEqual(vault.avatar, AvatarSpec())
+    }
+
+    func testAvatarRoundTripsThroughVault() throws {
+        var vault = PlayerVault(calibration: CalibrationProfile(childName: "Aria"))
+        vault.avatar = AvatarSpec(body: .boy, skinToneID: "deep", hairStyle: .curly,
+                                  hairColorID: "black", outfitColorID: "sky")
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("vault-avatar-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        try vault.save(to: url)
+        let loaded = PlayerVault.load(from: url)
+        XCTAssertEqual(loaded.avatar, vault.avatar)
+    }
+
+    func testUnknownPaletteIDsResolveToFirstOption() {
+        XCTAssertEqual(AvatarPalette.skinTone(id: "from_the_future").id, AvatarPalette.skinTones[0].id)
+        XCTAssertEqual(AvatarPalette.hairColor(id: "?").id, AvatarPalette.hairColors[0].id)
+        XCTAssertEqual(AvatarPalette.outfitColor(id: "").id, AvatarPalette.outfitColors[0].id)
+    }
 }

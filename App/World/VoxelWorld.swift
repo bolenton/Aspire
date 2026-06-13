@@ -383,25 +383,86 @@ enum VoxelWorld {
                     materials: [solid(color, emissive: emissive)])
     }
 
-    /// Her blocky adventurer: little boots, a warm tunic, a bright face, and
-    /// a tiny lantern on her belt — readable from the third-person camera.
-    static func playerAvatar() -> RealityKit.Entity {
+    /// Her blocky adventurer, built from the hero she designed: her body,
+    /// her skin, her hair, her outfit — plus the boots, the bright face with
+    /// eyes, and the tiny lantern on the belt that make the figure readable
+    /// from the third-person camera.
+    static func playerAvatar(spec: AvatarSpec = AvatarSpec()) -> RealityKit.Entity {
         let root = RealityKit.Entity()
-        let tunic = UIColor(red: 0.85, green: 0.32, blue: 0.25, alpha: 1)
-        let skin = UIColor(red: 0.98, green: 0.86, blue: 0.70, alpha: 1)
+        let outfit = WorldBuilder.color(hex: AvatarPalette.outfitColor(id: spec.outfitColorID).hex)
+        let skin = WorldBuilder.color(hex: AvatarPalette.skinTone(id: spec.skinToneID).hex)
+        let hair = WorldBuilder.color(hex: AvatarPalette.hairColor(id: spec.hairColorID).hex)
         let boots = UIColor(red: 0.30, green: 0.22, blue: 0.16, alpha: 1)
 
-        for side: Float in [-0.14, 0.14] {
-            let leg = block(0.18, 0.34, 0.2, boots)
-            leg.position = SIMD3<Float>(side, 0.17, 0)
-            root.addChild(leg)
+        switch spec.body {
+        case .boy:
+            for side: Float in [-0.14, 0.14] {
+                let leg = block(0.18, 0.34, 0.2, boots)
+                leg.position = SIMD3<Float>(side, 0.17, 0)
+                root.addChild(leg)
+            }
+        case .girl:
+            // A flared skirt over short boots — the silhouette change that
+            // reads at a glance from the camera distance.
+            for side: Float in [-0.13, 0.13] {
+                let leg = block(0.16, 0.2, 0.18, boots)
+                leg.position = SIMD3<Float>(side, 0.1, 0)
+                root.addChild(leg)
+            }
+            let skirt = block(0.64, 0.28, 0.42, outfit)
+            skirt.position.y = 0.32
+            root.addChild(skirt)
         }
-        let body = block(0.52, 0.6, 0.32, tunic)
+
+        let body = block(0.52, 0.6, 0.32, outfit)
         body.position.y = 0.64
         root.addChild(body)
+
         let head = block(0.42, 0.4, 0.4, skin, emissive: 1.1)
         head.position.y = 1.16
         root.addChild(head)
+        // A face: eyes are the single biggest "that's a person" cue.
+        let eyeColor = UIColor(white: 0.07, alpha: 1)
+        for side: Float in [-0.10, 0.10] {
+            let eye = block(0.07, 0.08, 0.05, eyeColor, emissive: 0.05)
+            eye.position = SIMD3<Float>(side, 1.20, -0.20)
+            root.addChild(eye)
+        }
+
+        switch spec.hairStyle {
+        case .short:
+            let cap = block(0.44, 0.14, 0.42, hair)
+            cap.position.y = 1.39
+            root.addChild(cap)
+        case .long:
+            let cap = block(0.44, 0.14, 0.42, hair)
+            cap.position.y = 1.39
+            root.addChild(cap)
+            let fall = block(0.44, 0.52, 0.12, hair)
+            fall.position = SIMD3<Float>(0, 1.1, 0.22)
+            root.addChild(fall)
+        case .curly:
+            let cloud = block(0.52, 0.24, 0.5, hair)
+            cloud.position.y = 1.42
+            root.addChild(cloud)
+            for side: Float in [-0.26, 0.26] {
+                let puff = block(0.14, 0.16, 0.3, hair)
+                puff.position = SIMD3<Float>(side, 1.26, 0)
+                root.addChild(puff)
+            }
+        case .braids:
+            let cap = block(0.44, 0.14, 0.42, hair)
+            cap.position.y = 1.39
+            root.addChild(cap)
+            for side: Float in [-0.25, 0.25] {
+                let braid = block(0.1, 0.44, 0.1, hair)
+                braid.position = SIMD3<Float>(side, 1.02, 0.1)
+                root.addChild(braid)
+            }
+        case .bald:
+            break
+        }
+
         let lantern = block(0.14, 0.18, 0.14, UIColor(red: 1.0, green: 0.84, blue: 0.35, alpha: 1),
                             emissive: 3.0)
         lantern.position = SIMD3<Float>(0.32, 0.62, 0.12)
