@@ -227,3 +227,24 @@ final class DifficultyDirectorTests: XCTestCase {
         XCTAssertEqual(director.hint(for: step, companionID: "clover"), "soft middle")
     }
 }
+
+final class VisualSpecTests: XCTestCase {
+    func testDecodesWithoutAssetNameAsNil() throws {
+        let json = #"{"shape": "tree", "colorHex": "#FFD24A", "scale": 1.2, "glow": 1.0}"#
+        let spec = try JSONDecoder().decode(VisualSpec.self, from: Data(json.utf8))
+        XCTAssertNil(spec.assetName)
+        XCTAssertEqual(spec.shape, "tree")
+    }
+
+    func testDecodesAssetNameWhenPresent() throws {
+        let json = #"{"shape": "tree", "colorHex": "#FFD24A", "scale": 1.0, "glow": 1.0, "assetName": "old_oak"}"#
+        let spec = try JSONDecoder().decode(VisualSpec.self, from: Data(json.utf8))
+        XCTAssertEqual(spec.assetName, "old_oak")
+    }
+
+    func testRoundTripPreservesAssetName() throws {
+        let original = VisualSpec(shape: "chest", colorHex: "#AA5500", assetName: "treasure_chest")
+        let decoded = try JSONDecoder().decode(VisualSpec.self, from: JSONEncoder().encode(original))
+        XCTAssertEqual(decoded, original)
+    }
+}

@@ -25,6 +25,10 @@ struct WorldView: UIViewRepresentable {
     func makeUIView(context: Context) -> ARView {
         let arView = ARView(frame: .zero, cameraMode: .nonAR, automaticallyConfigureSession: false)
         arView.isUserInteractionEnabled = false
+        // Kill every softening effect: low vision needs each rendered pixel
+        // crisp, and the post stack supplies the only intentional glow.
+        arView.renderOptions.formUnion([.disableMotionBlur, .disableDepthOfField,
+                                        .disableCameraGrain])
         context.coordinator.attach(to: arView, avatar: model.avatarSpec)
         sync(context.coordinator)
         return arView
@@ -36,6 +40,8 @@ struct WorldView: UIViewRepresentable {
 
     private func sync(_ coordinator: Coordinator) {
         coordinator.setCameraTarget(pose: model.pose)
+        coordinator.setPostSettings(highContrast: highContrast,
+                                    glowBoost: model.slot.difficulty.support.glowBoost)
         coordinator.setScene(id: model.scene?.id, environment: model.scene?.environment,
                              highContrast: highContrast)
         if coordinator.builtRevision != model.worldRevision
@@ -60,13 +66,14 @@ struct WorldView: UIViewRepresentable {
         private var playerEntity: RealityKit.Entity?
         private var beacon: ModelEntity?
         private var terrain: RealityKit.Entity?
+        private var skyDome: ModelEntity?
         private var entityNodes: [String: RealityKit.Entity] = [:]
         private var entityKinds: [String: EntityKind] = [:]
         private var fireflies: [(entity: ModelEntity, phase: Float, radius: Float, center: SIMD3<Float>)] = []
         private var updateSubscription: Cancellable?
         /// Held for the ARView's lifetime so the post-process callback's owner
-        /// stays alive; nil when bloom is off or unsupported on this device.
-        private var bloom: BloomPostProcess?
+        /// stays alive; nil when effects are off or unsupported on this device.
+        private var post: WorldPostEffects?
 
         private(set) var builtRevision = -1
         private(set) var builtHighContrast = false
@@ -103,27 +110,37 @@ struct WorldView: UIViewRepresentable {
             light.light.intensity = 1200
             light.orientation = simd_quatf(angle: -.pi / 3, axis: SIMD3<Float>(1, 0, 0))
             light.position = SIMD3<Float>(0, 8, 0)
+            // Real cast shadows: the strongest depth cue we can give her eyes,
+            // and the thing that stops every object reading as floating. The
+            // blob discs stay underneath (dimmed) as the grounding fallback
+            // wherever the shadow map runs out.
+            light.shadow = DirectionalLightComponent.Shadow(maximumDistance: 40,
+                                                            depthBias: 2)
             anchor.addChild(light)
             self.light = light
 
             let camera = PerspectiveCamera()
             camera.camera.fieldOfViewInDegrees = 70
+            // Far plane set explicitly so the 140 m sky dome is always inside
+            // it, whatever the platform default happens to be.
+            camera.camera.far = 400
             camera.position = SIMD3<Float>(0, 5.5, 7.5)
             anchor.addChild(camera)
             self.camera = camera
 
-            // Bloom: makes her emissive glows actually bloom for low vision.
-            // Hardcoded on (the persisted `bloomEnabled` setting arrives with
-            // the C1 calibration migration), but skipped under Low Power Mode so
-            // we never spend the post-process budget when the battery is tight.
-            // If the device can't build the MPS chain, `BloomPostProcess` is nil
-            // and we never register — rendering is left exactly as it was.
-            let bloomEnabled = true
-            if bloomEnabled, !ProcessInfo.processInfo.isLowPowerModeEnabled,
+            // Post stack: bloom that halos her emissive glows plus drawn depth
+            // outlines around every object. Hardcoded on (the persisted
+            // `bloomEnabled` setting arrives with the C1 calibration
+            // migration), but skipped under Low Power Mode so we never spend
+            // the post-process budget when the battery is tight. If the device
+            // can't build the MPS chain, `WorldPostEffects` is nil and we
+            // never register — rendering is left exactly as it was.
+            let effectsEnabled = true
+            if effectsEnabled, !ProcessInfo.processInfo.isLowPowerModeEnabled,
                let device = MTLCreateSystemDefaultDevice(),
-               let bloom = BloomPostProcess(device: device) {
-                bloom.register(on: arView)
-                self.bloom = bloom
+               let post = WorldPostEffects(device: device) {
+                post.register(on: arView)
+                self.post = post
             }
 
             for _ in 0..<14 {
@@ -149,6 +166,14 @@ struct WorldView: UIViewRepresentable {
             questTargetID = id
         }
 
+        /// Keeps the post stack in step with the calibration theme and the
+        /// adaptive support level: white outlines on the high-contrast world,
+        /// heavier outlines when she needs more help.
+        func setPostSettings(highContrast: Bool, glowBoost: Double) {
+            post?.highContrast = highContrast
+            post?.glowBoost = Float(glowBoost)
+        }
+
         /// Rebuilds the biome when she travels: blocky terrain, scatter, and
         /// the sky color all come from the scene's environment, seeded by
         /// the scene id so each place always looks like itself.
@@ -167,6 +192,18 @@ struct WorldView: UIViewRepresentable {
             let biome = VoxelWorld.biome(for: environment, highContrast: highContrast)
             arView?.environment.background = .color(biome.skyColor)
             light?.light.intensity = biome.lightIntensity
+
+            // Gradient sky dome: an unlit inside-out sphere far beyond the
+            // playable area, so the world sits under a sky with depth instead
+            // of a flat color. The flat background color stays set behind it
+            // as the fallback. High contrast gets no dome — that mode's
+            // contract is a pure black void behind yellow shapes.
+            skyDome?.removeFromParent()
+            skyDome = nil
+            if !highContrast, let dome = VoxelWorld.skyDome(biome: biome) {
+                worldAnchor.addChild(dome)
+                skyDome = dome
+            }
         }
 
         func rebuildEntities(resolved: [ResolvedEntity], companion: Companion,

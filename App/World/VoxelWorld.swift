@@ -44,6 +44,11 @@ struct SeededRandom {
 enum VoxelWorld {
     struct Biome {
         let skyColor: UIColor
+        /// Sky-dome gradient: zenith fading to a horizon band. The flat
+        /// `skyColor` stays set behind the dome as the fallback and is all
+        /// high contrast ever shows (that mode gets no dome at all).
+        let skyTop: UIColor
+        let skyHorizon: UIColor
         let baseColor: UIColor
         /// Ground tile palette, varied per-tile like Minecraft grass.
         let groundColors: [UIColor]
@@ -61,6 +66,8 @@ enum VoxelWorld {
             // world itself must not compete for her eyes at all.
             return Biome(
                 skyColor: UIColor(white: 0.0, alpha: 1),
+                skyTop: UIColor(white: 0.0, alpha: 1),
+                skyHorizon: UIColor(white: 0.0, alpha: 1),
                 baseColor: UIColor(white: 0.03, alpha: 1),
                 groundColors: [
                     UIColor(white: 0.055, alpha: 1),
@@ -75,6 +82,8 @@ enum VoxelWorld {
         case "cave":
             return Biome(
                 skyColor: UIColor(red: 0.015, green: 0.015, blue: 0.045, alpha: 1),
+                skyTop: UIColor(red: 0.004, green: 0.004, blue: 0.018, alpha: 1),
+                skyHorizon: UIColor(red: 0.06, green: 0.03, blue: 0.12, alpha: 1),
                 baseColor: UIColor(red: 0.05, green: 0.05, blue: 0.10, alpha: 1),
                 groundColors: [
                     UIColor(red: 0.16, green: 0.17, blue: 0.24, alpha: 1),
@@ -87,6 +96,8 @@ enum VoxelWorld {
         case "castle":
             return Biome(
                 skyColor: UIColor(red: 0.09, green: 0.05, blue: 0.14, alpha: 1),
+                skyTop: UIColor(red: 0.05, green: 0.02, blue: 0.10, alpha: 1),
+                skyHorizon: UIColor(red: 0.18, green: 0.10, blue: 0.15, alpha: 1),
                 baseColor: UIColor(red: 0.11, green: 0.09, blue: 0.13, alpha: 1),
                 groundColors: [
                     UIColor(red: 0.38, green: 0.34, blue: 0.32, alpha: 1),
@@ -99,6 +110,8 @@ enum VoxelWorld {
         default: // forest
             return Biome(
                 skyColor: UIColor(red: 0.03, green: 0.04, blue: 0.11, alpha: 1),
+                skyTop: UIColor(red: 0.012, green: 0.018, blue: 0.07, alpha: 1),
+                skyHorizon: UIColor(red: 0.06, green: 0.11, blue: 0.20, alpha: 1),
                 baseColor: UIColor(red: 0.04, green: 0.08, blue: 0.06, alpha: 1),
                 groundColors: [
                     UIColor(red: 0.18, green: 0.42, blue: 0.22, alpha: 1),
@@ -108,6 +121,50 @@ enum VoxelWorld {
                 hillColor: UIColor(red: 0.12, green: 0.26, blue: 0.16, alpha: 1),
                 groundEmissive: 0.33,
                 lightIntensity: 1200)
+        }
+    }
+
+    /// An unlit inside-out sphere carrying the biome's vertical gradient —
+    /// sky with depth instead of a flat color, far beyond the terrain (base
+    /// plane corners reach ~92 m) yet inside the camera's far plane. Unlit
+    /// keeps it out of the lighting and (being dim) out of the bloom, and the
+    /// negative-X scale flips the winding so the inside faces render.
+    /// Returns nil if the gradient texture can't be built — callers keep the
+    /// flat background color, which is always set anyway.
+    static func skyDome(biome: Biome) -> ModelEntity? {
+        guard let cgImage = gradientImage(top: biome.skyTop, horizon: biome.skyHorizon).cgImage,
+              let texture = try? TextureResource(image: cgImage,
+                                                 options: .init(semantic: .color)) else {
+            return nil
+        }
+        var material = UnlitMaterial()
+        material.color = .init(tint: .white, texture: .init(texture))
+        let dome = ModelEntity(mesh: .generateSphere(radius: 140), materials: [material])
+        dome.scale = SIMD3<Float>(-1, 1, 1)
+        return dome
+    }
+
+    /// Tall thin vertical gradient: zenith color at the top, easing into the
+    /// horizon band above the equator, constant below it (terrain hides the
+    /// lower half anyway). Equirectangular V maps straight onto this.
+    private static func gradientImage(top: UIColor, horizon: UIColor) -> UIImage {
+        let size = CGSize(width: 4, height: 512)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        return UIGraphicsImageRenderer(size: size, format: format).image { context in
+            let colors = [top.cgColor, horizon.cgColor, horizon.cgColor] as CFArray
+            let locations: [CGFloat] = [0.0, 0.55, 1.0]
+            guard let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
+                                            colors: colors, locations: locations) else {
+                top.setFill()
+                context.fill(CGRect(origin: .zero, size: size))
+                return
+            }
+            context.cgContext.drawLinearGradient(
+                gradient,
+                start: CGPoint(x: 0, y: 0),
+                end: CGPoint(x: 0, y: size.height),
+                options: [.drawsBeforeStartLocation, .drawsAfterEndLocation])
         }
     }
 

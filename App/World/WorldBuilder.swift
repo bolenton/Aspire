@@ -24,13 +24,15 @@ enum WorldBuilder {
         material.baseColor = .init(tint: color)
         material.emissiveColor = .init(color: color)
         material.emissiveIntensity = emissive
-        material.roughness = 0.9
+        // 0.7 leaves a hint of directional response now that the light casts
+        // real shadows — pure 0.9 matte read as flat cardboard.
+        material.roughness = 0.7
         material.metallic = 0.0
         return material
     }
 
     static func haloMaterial(_ color: UIColor, opacity: Float) -> PhysicallyBasedMaterial {
-        var material = glowMaterial(color, emissive: 1.5)
+        var material = glowMaterial(color, emissive: 2.0)
         material.blending = .transparent(opacity: .init(floatLiteral: opacity))
         return material
     }
@@ -67,6 +69,14 @@ enum WorldBuilder {
         if entity.id == StoryConventions.companionPlaceholder {
             body = VoxelWorld.critter(species: companion.species, tint: tint)
             topY = 1.8 // clears the tallest critter (bunny ears, ×1.3)
+        } else if !highContrast, let model = loadArtModel(spec: spec) {
+            // Commissioned/generated USDZ art slots in over the procedural
+            // silhouette — same graceful-degradation contract as audio: any
+            // missing or unloadable asset falls back to the shape below.
+            // High contrast always uses procedural shapes; forced-yellow
+            // silhouettes are that mode's accessibility contract.
+            body = model.entity
+            topY = model.topY
         } else {
             let built = shape(spec.shape, tint: tint, scale: scale,
                               highContrast: highContrast)
@@ -106,6 +116,25 @@ enum WorldBuilder {
         marker.addChild(questChip)
         root.addChild(marker)
         return root
+    }
+
+    /// Loads a real 3D model for entities whose content names one
+    /// (`VisualSpec.assetName`): a USDZ in `Assets/Art/Models/`, authored to
+    /// the conventions in `Docs/ArtPipeline.md` (1 unit = 1 m, pivot at
+    /// ground-center). Returns nil on any failure so the caller falls back
+    /// to the procedural silhouette — the shape key stays the semantic
+    /// identity, the asset is only ever an upgrade.
+    private static func loadArtModel(spec: VisualSpec) -> (entity: ModelEntity, topY: Float)? {
+        guard let assetName = spec.assetName,
+              let url = Bundle.main.url(forResource: assetName, withExtension: "usdz",
+                                        subdirectory: "Assets/Art/Models")
+                  ?? Bundle.main.url(forResource: assetName, withExtension: "usdz"),
+              let model = try? ModelEntity.loadModel(contentsOf: url) else { return nil }
+        model.scale = SIMD3<Float>(repeating: Float(spec.scale))
+        let topY = model.visualBounds(relativeTo: nil).max.y
+        // A marker glued to the ground reads as a bug; keep it clear of even
+        // squat or mis-pivoted models.
+        return (model, max(topY, 0.5))
     }
 
     /// The procedural silhouette library. Returns the body entity plus the
@@ -281,7 +310,9 @@ enum WorldBuilder {
         var material = PhysicallyBasedMaterial()
         material.baseColor = .init(tint: .black)
         material.roughness = 1.0
-        material.blending = .transparent(opacity: .init(floatLiteral: 0.5))
+        // Dimmer than it once was: the directional light casts real shadows
+        // now, and blob + cast shadow at full strength double-darkened.
+        material.blending = .transparent(opacity: .init(floatLiteral: 0.35))
         let shadow = ModelEntity(mesh: .generateSphere(radius: radius), materials: [material])
         shadow.scale = SIMD3<Float>(1.0, 0.04, 1.0)
         shadow.position.y = 0.03
