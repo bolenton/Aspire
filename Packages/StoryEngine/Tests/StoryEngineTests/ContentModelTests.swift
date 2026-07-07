@@ -230,14 +230,15 @@ final class DifficultyDirectorTests: XCTestCase {
 
 final class VisualSpecTests: XCTestCase {
     func testDecodesWithoutAssetNameAsNil() throws {
-        let json = #"{"shape": "tree", "colorHex": "#FFD24A", "scale": 1.2, "glow": 1.0}"#
+        // ##-delimited: the color's "# would end a plain #"..."# raw string.
+        let json = ##"{"shape": "tree", "colorHex": "#FFD24A", "scale": 1.2, "glow": 1.0}"##
         let spec = try JSONDecoder().decode(VisualSpec.self, from: Data(json.utf8))
         XCTAssertNil(spec.assetName)
         XCTAssertEqual(spec.shape, "tree")
     }
 
     func testDecodesAssetNameWhenPresent() throws {
-        let json = #"{"shape": "tree", "colorHex": "#FFD24A", "scale": 1.0, "glow": 1.0, "assetName": "old_oak"}"#
+        let json = ##"{"shape": "tree", "colorHex": "#FFD24A", "scale": 1.0, "glow": 1.0, "assetName": "old_oak"}"##
         let spec = try JSONDecoder().decode(VisualSpec.self, from: Data(json.utf8))
         XCTAssertEqual(spec.assetName, "old_oak")
     }
