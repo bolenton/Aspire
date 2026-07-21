@@ -294,12 +294,19 @@ public struct VisualSpec: Codable, Equatable, Sendable {
     public var scale: Double
     /// 0...2, multiplied by the support level's glow boost at render time.
     public var glow: Double
+    /// Optional real-art override: the name of a bundled USDZ model (see
+    /// Docs/ArtPipeline.md). Renderers try it first and fall back to the
+    /// procedural `shape`, which remains the semantic identity — packs
+    /// without the key decode exactly as before.
+    public var assetName: String?
 
-    public init(shape: String, colorHex: String, scale: Double = 1.0, glow: Double = 1.0) {
+    public init(shape: String, colorHex: String, scale: Double = 1.0, glow: Double = 1.0,
+                assetName: String? = nil) {
         self.shape = shape
         self.colorHex = colorHex
         self.scale = scale
         self.glow = glow
+        self.assetName = assetName
     }
 }
 

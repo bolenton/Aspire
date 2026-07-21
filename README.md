@@ -150,6 +150,12 @@ runner for every push.
       the mice choir). The chapter-3 finale lights a whole city
 - [x] Memory fully wired: the companion's live AI context now carries her
       remembered choices; "favorite" choices cross playthroughs
+- [x] Graphics definition overhaul: Retina mipmapped icon chips, drawn
+      depth-edge outlines around every object (white in high contrast),
+      dual-scale bloom (sharp core + soft aura), real cast shadows, gradient
+      sky domes per biome — and the `VisualSpec.assetName` USDZ slot with
+      procedural fallback (Docs/ArtPipeline.md) so commissioned/generated
+      models drop in without engine changes
 - [x] Release engineering: PRIVACY.md (collects nothing), Docs/AppStore.md
       (listing draft, Kids checklist, TestFlight guide), a one-click
       TestFlight upload workflow (add 3 secrets to arm it), in-app
