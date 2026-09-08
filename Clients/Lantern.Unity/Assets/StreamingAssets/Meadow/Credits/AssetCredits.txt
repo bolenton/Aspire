@@ -1,0 +1,28 @@
+LANTERN MEADOW — ART AND AUDIO
+
+Explorer, Ember, the meadow, lantern oak, river bell, lantern garden and wishing star:
+Original meshes authored for Lantern in Blender. Reproducible source scripts:
+scripts/art/geometry.py, characters.py, meadow.py, garden.py and build_assets.py.
+Character movement uses named pose pivots, not motion-capture animation.
+
+Title illustration: generated for Lantern using OpenAI image generation.
+This illustration appears only on the title screen; it is not a gameplay capture.
+
+'Childhood' by Scott Buckley - released under CC-BY 4.0.
+www.scottbuckley.com.au
+https://www.scottbuckley.com.au/library/childhood/
+License: https://creativecommons.org/licenses/by/4.0/
+Changes: playback loudness normalization and a short fade-in; encoded for the game.
+
+Park ambiences (birds and river): Thimras, CC0.
+https://opengameart.org/content/park-ambiences
+License: https://creativecommons.org/publicdomain/zero/1.0/
+Changes: edited into crossfaded loops, normalized, river converted to mono.
+
+Impact Sounds: Kenney, CC0. The original license accompanies this file.
+https://kenney.nl/assets/impact-sounds
+Grass footsteps and bell recordings are filtered, leveled and resampled for Lantern.
+Musical notes are pitched from the newly acquired recorded bell sample.
+
+No audio, character models or environment models from the old Lantern client
+are included in this meadow's presentation.

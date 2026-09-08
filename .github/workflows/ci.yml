@@ -5,6 +5,28 @@ on:
   pull_request:
 
 jobs:
+  companion-tests:
+    name: Local companion contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: Services/Lantern.Companion/go.mod
+          cache-dependency-path: Services/Lantern.Companion/go.sum
+      - run: go test -race ./...
+        working-directory: Services/Lantern.Companion
+
+  unity-core-tests:
+    name: Unity story core contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - run: dotnet test Tests/Lantern.Core.Tests/Lantern.Core.Tests.csproj --configuration Release --nologo
+
   engine-tests:
     name: StoryEngine tests (Linux)
     runs-on: ubuntu-latest

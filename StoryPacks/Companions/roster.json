@@ -5,6 +5,7 @@
       "id": "ember",
       "name": "Ember",
       "species": "fox",
+      "assetName": "companion_fox",
       "personality": "Bold, warm, and a little mischievous. Always first to try, always last to give up. Loves riddles and honey biscuits.",
       "introduction": "Yip! I'm Ember the fox! My nose knows where every secret hides. Pick me, and we'll sniff out adventures nobody else can find!",
       "quirks": [
@@ -113,6 +114,7 @@
       "id": "clover",
       "name": "Clover",
       "species": "bunny",
+      "assetName": "companion_bunny",
       "personality": "Shy, kind, and the best listener in the whole forest. Brave in the quiet way — the way that holds your hand in the dark.",
       "introduction": "H-hello. I'm Clover the bunny. My big ears hear the quietest, most secret sounds... even under the ground. If you pick me, I promise to always listen.",
       "quirks": [

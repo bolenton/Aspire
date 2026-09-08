@@ -1,0 +1,14 @@
+{
+  "name": "Lantern.Unity",
+  "rootNamespace": "Lantern.Unity",
+  "references": [
+    "Lantern.Core",
+    "Unity.AI.Navigation",
+    "Unity.InputSystem",
+    "Unity.ugui",
+    "Unity.RenderPipelines.Universal.Runtime",
+    "Unity.RenderPipelines.Core.Runtime",
+    "glTFast"
+  ],
+  "autoReferenced": true
+}

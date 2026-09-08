@@ -1,0 +1,28 @@
+name: lantern-companion
+services:
+  companion:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8486:8486"
+    environment:
+      LANTERN_LISTEN: 0.0.0.0:8486
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    env_file: .env
+    volumes:
+      - companion-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+volumes:
+  companion-data:

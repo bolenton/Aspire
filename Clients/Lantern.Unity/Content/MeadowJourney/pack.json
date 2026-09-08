@@ -1,0 +1,765 @@
+{
+  "id": "forest_journey",
+  "title": "Lantern Meadow",
+  "version": 3,
+  "companionIDs": [
+    "ember"
+  ],
+  "regions": [
+    {
+      "id": "meadow",
+      "name": "Lantern Meadow",
+      "difficultyTier": 1,
+      "newMechanic": "Touch, listen, and bring the garden to life.",
+      "scenes": [
+        {
+          "id": "fox_hollow",
+          "environment": "forest",
+          "name": "Fox Hollow",
+          "spokenDescription": "A welcoming meadow and lantern orchard, connected by broad paths. Ember is your fox companion. Together you help the old oak, bring light to a garden, and make a home for fireflies with Luma the owl.",
+          "ambience": [],
+          "entities": [
+            {
+              "id": "@companion",
+              "kind": "companion",
+              "name": "your companion",
+              "position": {
+                "x": 1.5,
+                "y": 0,
+                "z": -3
+              },
+              "dialogueID": "d_intro",
+              "description": "Ember, the friendly fox, follows the explorer and shares the adventure."
+            },
+            {
+              "id": "old_oak",
+              "kind": "character",
+              "name": "old oak",
+              "position": {
+                "x": 0,
+                "y": 0,
+                "z": -13.8
+              },
+              "sound": {
+                "asset": "Oak.wav",
+                "loops": true,
+                "volume": 0.8,
+                "nearRadius": 1.5,
+                "farRadius": 18.0,
+                "spokenDescription": "a gentle, warm bell"
+              },
+              "dialogueID": "d_home_light",
+              "voiceAliases": [
+                "oak",
+                "tree",
+                "home"
+              ],
+              "description": "The old oak is a welcoming tree with a little door and golden windows. Its song reveals the glowing acorn."
+            },
+            {
+              "id": "glowing_acorn",
+              "kind": "item",
+              "name": "glowing acorn",
+              "position": {
+                "x": 2.1,
+                "y": 0,
+                "z": -13.5
+              },
+              "sound": {
+                "asset": "Acorn.wav",
+                "loops": true,
+                "volume": 0.5,
+                "nearRadius": 0.5,
+                "farRadius": 10.0,
+                "spokenDescription": "a small golden chime"
+              },
+              "requiresFlag": "oak_awake",
+              "lockedExplanation": {
+                "base": "The acorn is still asleep, high in the branches. If we sing the oak's waking song, it will hand it down to us.",
+                "byCompanion": {
+                  "ember": "The acorn is snoozing up in the branches — even my nose can't reach that high! Let's sing the oak's waking song. Yip!",
+                  "petal": "The acorn is dreaming up in the branches... I flew past it! Sing the oak's waking song and it will drift down to us.",
+                  "clover": "Shh... the acorn is sleeping up in the branches. If we sing the waking song very nicely, the oak will hand it down."
+                }
+              },
+              "voiceAliases": [
+                "acorn"
+              ],
+              "description": "glowing acorn"
+            },
+            {
+              "id": "river_bell",
+              "name": "river bell",
+              "kind": "landmark",
+              "position": {
+                "x": 7,
+                "y": 0,
+                "z": -6
+              },
+              "sound": {
+                "asset": "Bell.wav",
+                "loops": true,
+                "volume": 0.25,
+                "nearRadius": 2,
+                "farRadius": 20,
+                "spokenDescription": "a mellow brass bell"
+              },
+              "voiceAliases": [
+                "bell",
+                "river"
+              ],
+              "description": "The brass bell sings beside the safe stone bridge."
+            },
+            {
+              "id": "garden_gate",
+              "name": "sunflower arch",
+              "kind": "landmark",
+              "position": {
+                "x": 17,
+                "y": 0,
+                "z": -6
+              },
+              "voiceAliases": [
+                "gateway",
+                "gate",
+                "bridge"
+              ],
+              "description": "sunflower arch"
+            },
+            {
+              "id": "lantern_flower",
+              "name": "lantern flower",
+              "kind": "landmark",
+              "position": {
+                "x": 24,
+                "y": 0,
+                "z": -17
+              },
+              "sound": {
+                "asset": "Oak.wav",
+                "loops": true,
+                "volume": 0.25,
+                "nearRadius": 2,
+                "farRadius": 20,
+                "spokenDescription": "a low, warm garden chime"
+              },
+              "voiceAliases": [
+                "flower",
+                "garden"
+              ],
+              "description": "A tall flower with a glowing lantern at its heart."
+            },
+            {
+              "id": "garden_star",
+              "name": "garden star",
+              "kind": "item",
+              "position": {
+                "x": 24,
+                "y": 0,
+                "z": -14.6
+              },
+              "requiresFlag": "garden_awake",
+              "lockedExplanation": "This little light is still sleeping. Let us finish the garden song first.",
+              "sound": {
+                "asset": "Acorn.wav",
+                "loops": true,
+                "volume": 0.25,
+                "nearRadius": 2,
+                "farRadius": 20,
+                "spokenDescription": "a bright little star chime"
+              },
+              "voiceAliases": [
+                "star"
+              ],
+              "description": "garden star"
+            },
+            {
+              "id": "orchard_gate",
+              "kind": "landmark",
+              "name": "Orchard arch",
+              "position": {
+                "x": -14,
+                "y": 0,
+                "z": -8
+              },
+              "voiceAliases": [
+                "orchard",
+                "orchard arch",
+                "silver arch"
+              ],
+              "description": "A broad silver-wood arch with warm lanterns leads to the blue-leaved orchard.",
+              "requiresFlag": "meadow_lit",
+              "lockedExplanation": "The orchard is resting. Let us finish our current little adventure first."
+            },
+            {
+              "id": "luma",
+              "kind": "character",
+              "name": "Luma the owl",
+              "position": {
+                "x": -22,
+                "y": 0,
+                "z": -4
+              },
+              "voiceAliases": [
+                "luma",
+                "owl"
+              ],
+              "description": "Luma is a gentle owl who tends the orchard and makes little homes for fireflies. She wears a blue scarf and carries a tiny lantern.",
+              "requiresFlag": "meadow_lit",
+              "lockedExplanation": "The orchard is resting. Let us finish our current little adventure first.",
+              "dialogueID": "luma_welcome"
+            },
+            {
+              "id": "moon_harp",
+              "kind": "landmark",
+              "name": "Moon harp",
+              "position": {
+                "x": -31,
+                "y": 0,
+                "z": -6
+              },
+              "voiceAliases": [
+                "harp",
+                "moon harp"
+              ],
+              "description": "A tall brass harp with seven luminous strings. Its gentle song wakes the orchard fireflies.",
+              "requiresFlag": "meadow_lit",
+              "lockedExplanation": "The orchard is resting. Let us finish our current little adventure first."
+            },
+            {
+              "id": "moon_seed",
+              "kind": "item",
+              "name": "Moon seed",
+              "position": {
+                "x": -28,
+                "y": 0,
+                "z": 3
+              },
+              "voiceAliases": [
+                "seed",
+                "moon seed"
+              ],
+              "description": "A large honey-gold seed with silver wings. It holds the light of the orchard song.",
+              "requiresFlag": "orchard_awake",
+              "lockedExplanation": "The orchard is resting. Let us finish our current little adventure first."
+            },
+            {
+              "id": "lantern_nest",
+              "kind": "landmark",
+              "name": "Lantern nest",
+              "position": {
+                "x": -34,
+                "y": 0,
+                "z": 5
+              },
+              "voiceAliases": [
+                "nest",
+                "lantern nest"
+              ],
+              "description": "A stone pedestal with a woven silver nest. Plant the moon seed here to make a resting place for the fireflies.",
+              "requiresFlag": "moon_seed_found",
+              "lockedExplanation": "The orchard is resting. Let us finish our current little adventure first.",
+              "dialogueID": "plant_moon_seed"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "quests": [
+    {
+      "id": "glowing_acorn_quest",
+      "title": "The Glowing Acorn",
+      "spokenSummary": {
+        "base": "The old oak lost its glowing acorn. We promised to wake the oak with its favorite song and bring the acorn home.",
+        "byCompanion": {
+          "ember": "Yip! The old oak lost its glowing acorn. We promised to sing the oak awake and sniff that acorn home!",
+          "petal": "The old oak is dreaming about its lost glowing acorn... we promised to wake it gently with its favorite song.",
+          "clover": "The old oak misses its glowing acorn. We promised — very quietly — to sing it awake and bring the acorn home."
+        }
+      },
+      "steps": [
+        {
+          "id": "find_friend",
+          "goal": "reach",
+          "targetEntityID": "@companion",
+          "intro": "Ember is waiting just ahead. Walk over together.",
+          "celebration": {
+            "base": "You found your friend! This is the start of something wonderful.",
+            "byCompanion": {
+              "ember": "Yip yip! You found me! This is the start of something wonderful!",
+              "petal": "Ooh, there you are! Like two clouds finding each other.",
+              "clover": "Oh my... you found me. I'm so glad it's you."
+            }
+          },
+          "hintLadder": [
+            "Look for your orange fox friend.",
+            "Ember is just ahead.",
+            "Use the compass and I will guide us to Ember."
+          ]
+        },
+        {
+          "id": "say_hello",
+          "goal": "talk",
+          "targetEntityID": "@companion",
+          "intro": "Say hello to your new friend!",
+          "celebration": "A friendship like this only comes along once in a forest.",
+          "hintLadder": [
+            "Your friend is waiting to chat.",
+            "Tap your friend to say hello.",
+            "Tap the glowing friend right in front of you to start talking."
+          ]
+        },
+        {
+          "id": "reach_oak",
+          "goal": "reach",
+          "targetEntityID": "old_oak",
+          "intro": "The oak has a teal door and warm golden windows. Let us follow its gentle bell.",
+          "celebration": "You found the old oak! Its branches stretch over you like a roof of stars.",
+          "hintLadder": [
+            "Look for the enormous oak.",
+            "Follow the broad pale path toward the golden windows.",
+            "Use the compass and I will guide us to the oak."
+          ]
+        },
+        {
+          "id": "wake_oak",
+          "goal": "song",
+          "targetEntityID": "old_oak",
+          "songSpellID": "oak_song",
+          "intro": {
+            "base": "The oak is sleeping. Listen to its waking song, then sing it back!",
+            "byCompanion": {
+              "ember": "The oak snores louder than me! Listen to its waking song, then sing it back — yip!",
+              "petal": "Shh... the oak is dreaming. Listen to its waking song, then sing it back softly.",
+              "clover": "The oak is deep asleep. Listen very carefully to its song, then we'll sing it back together."
+            }
+          },
+          "celebration": "The old oak stretches its branches awake! Leaves shiver with happiness all around you.",
+          "hintLadder": [
+            "Listen to the notes first, then copy them.",
+            "The song climbs from low to high, one note at a time.",
+            "Tap the notes in order, low to high, just like the oak sang them. Take your time — the oak loves to listen."
+          ],
+          "setsFlag": "oak_awake"
+        },
+        {
+          "id": "take_acorn",
+          "goal": "collect",
+          "targetEntityID": "glowing_acorn",
+          "intro": "The oak hands down its glowing acorn — it chimes like a tiny bell. Go collect it!",
+          "celebration": {
+            "base": "You did it! The glowing acorn is safe, and the whole forest hums a thank-you.",
+            "byCompanion": {
+              "ember": "YIP YIP YIP! The glowing acorn is ours — I mean, the oak's! The whole forest is cheering for you!",
+              "petal": "Ooh... the acorn glows like a baby star. The whole forest hums a thank-you, one wingbeat at a time.",
+              "clover": "You did it... you really did it. Can you hear the whole forest humming thank-you? That's for you."
+            }
+          },
+          "hintLadder": [
+            "Follow the tiny chime.",
+            "The chiming acorn is very close to the oak's roots.",
+            "The acorn is right beside the oak, one step away. Follow the silver chime."
+          ],
+          "setsFlag": "acorn_found"
+        }
+      ]
+    },
+    {
+      "id": "lantern_garden_quest",
+      "title": "The Sleeping Lantern Garden",
+      "requiresFlag": "acorn_found",
+      "spokenSummary": "Across the river, the lantern flowers are sleeping. We can carry the oak’s song to them.",
+      "steps": [
+        {
+          "id": "reach_river_bell",
+          "goal": "reach",
+          "targetEntityID": "river_bell",
+          "intro": "A brass bell waits beside the stone bridge. Let us visit it.",
+          "celebration": "Here is the river bell. The stream is listening.",
+          "hintLadder": [
+            "A brass bell waits beside the stone bridge. Let us visit it.",
+            "Tap the landmark to walk closer together.",
+            "Use the compass. I will guide us, and you can stop any time."
+          ]
+        },
+        {
+          "id": "sing_river",
+          "goal": "song",
+          "targetEntityID": "river_bell",
+          "intro": "Tap the river bell and play its three warm notes.",
+          "celebration": "The bell sings across the water. Let us follow its song!",
+          "hintLadder": [
+            "Tap the river bell and play its three warm notes.",
+            "Tap the landmark to walk closer together.",
+            "Use the compass. I will guide us, and you can stop any time."
+          ],
+          "setsFlag": "bridge_singing",
+          "songSpellID": "river_song"
+        },
+        {
+          "id": "cross_meadow_bridge",
+          "goal": "reach",
+          "targetEntityID": "garden_gate",
+          "intro": "Cross the stone bridge to the enormous sunflower arch.",
+          "celebration": "We crossed together! Look at these lovely lantern flowers.",
+          "hintLadder": [
+            "Cross the stone bridge to the enormous sunflower arch.",
+            "Tap the landmark to walk closer together.",
+            "Use the compass. I will guide us, and you can stop any time."
+          ]
+        },
+        {
+          "id": "reach_lantern_flower",
+          "goal": "reach",
+          "targetEntityID": "lantern_flower",
+          "intro": "The tallest lantern flower is waiting in the round garden.",
+          "celebration": "A sleeping garden, and a little song to wake it.",
+          "hintLadder": [
+            "The tallest lantern flower is waiting in the round garden.",
+            "Tap the landmark to walk closer together.",
+            "Use the compass. I will guide us, and you can stop any time."
+          ]
+        },
+        {
+          "id": "wake_lantern_garden",
+          "goal": "song",
+          "targetEntityID": "lantern_flower",
+          "intro": "Tap the tall flower. Let us give the garden its song.",
+          "celebration": "The lantern garden is awake! Every petal holds a little light.",
+          "hintLadder": [
+            "Tap the tall flower. Let us give the garden its song.",
+            "Tap the landmark to walk closer together.",
+            "Use the compass. I will guide us, and you can stop any time."
+          ],
+          "setsFlag": "garden_awake",
+          "songSpellID": "garden_song"
+        },
+        {
+          "id": "take_garden_star",
+          "goal": "collect",
+          "targetEntityID": "garden_star",
+          "intro": "A golden star has appeared at the flower’s feet. Let us take it home.",
+          "celebration": "A garden star! There is enough light to share with the oak.",
+          "hintLadder": [
+            "A golden star has appeared at the flower’s feet. Let us take it home.",
+            "Tap the landmark to walk closer together.",
+            "Use the compass. I will guide us, and you can stop any time."
+          ],
+          "setsFlag": "garden_star_found"
+        }
+      ]
+    },
+    {
+      "id": "bring_the_light_home",
+      "title": "A Light to Bring Home",
+      "requiresFlag": "garden_star_found",
+      "spokenSummary": "Bring the garden star back to the old oak and light a path for everyone.",
+      "steps": [
+        {
+          "id": "return_to_oak",
+          "goal": "reach",
+          "targetEntityID": "old_oak",
+          "intro": "Let us return across the bridge to the old oak.",
+          "celebration": "Home again. The oak is glad to see us.",
+          "hintLadder": [
+            "Let us return across the bridge to the old oak.",
+            "Tap the landmark to walk closer together.",
+            "Use the compass. I will guide us, and you can stop any time."
+          ]
+        },
+        {
+          "id": "share_garden_light",
+          "goal": "talk",
+          "targetEntityID": "old_oak",
+          "intro": "Tap the oak and choose how to share our new light.",
+          "celebration": "The meadow lanterns glow. A little light, a friend beside you, and a whole meadow to explore.",
+          "hintLadder": [
+            "Tap the oak and choose how to share our new light.",
+            "Tap the landmark to walk closer together.",
+            "Use the compass. I will guide us, and you can stop any time."
+          ],
+          "setsFlag": "meadow_lit"
+        }
+      ]
+    },
+    {
+      "id": "lumas_lantern_orchard",
+      "title": "Luma's Lantern Orchard",
+      "spokenSummary": "Help Luma wake the fireflies with the moon harp, then plant a moon seed in their lantern nest.",
+      "requiresFlag": "meadow_lit",
+      "steps": [
+        {
+          "id": "reach_orchard",
+          "goal": "reach",
+          "targetEntityID": "orchard_gate",
+          "intro": "Luma has left her lanterns on for us. Let us visit the silver arch.",
+          "celebration": "The orchard welcomes us.",
+          "hintLadder": [
+            "Luma has left her lanterns on for us. Let us visit the silver arch.",
+            "Tap the compass and Ember will guide us. We can stop whenever we like."
+          ]
+        },
+        {
+          "id": "meet_luma",
+          "goal": "reach",
+          "targetEntityID": "luma",
+          "intro": "There is Luma the owl. Let us meet her.",
+          "celebration": "We found Luma!",
+          "hintLadder": [
+            "There is Luma the owl. Let us meet her.",
+            "Tap the compass and Ember will guide us. We can stop whenever we like."
+          ]
+        },
+        {
+          "id": "hear_luma",
+          "goal": "talk",
+          "targetEntityID": "luma",
+          "intro": "Tap Luma to hear about her fireflies.",
+          "celebration": "Luma is happy to have our help.",
+          "hintLadder": [
+            "Tap Luma to hear about her fireflies.",
+            "Tap the compass and Ember will guide us. We can stop whenever we like."
+          ],
+          "setsFlag": "luma_met"
+        },
+        {
+          "id": "reach_moon_harp",
+          "goal": "reach",
+          "targetEntityID": "moon_harp",
+          "intro": "Let us find the moon harp. Its warm strings are waiting.",
+          "celebration": "The moon harp is right here.",
+          "hintLadder": [
+            "Let us find the moon harp. Its warm strings are waiting.",
+            "Tap the compass and Ember will guide us. We can stop whenever we like."
+          ]
+        },
+        {
+          "id": "sing_starlight",
+          "goal": "song",
+          "targetEntityID": "moon_harp",
+          "intro": "Tap the harp and play its gentle song.",
+          "celebration": "Little fireflies are waking in the orchard!",
+          "hintLadder": [
+            "Tap the harp and play its gentle song.",
+            "Tap the compass and Ember will guide us. We can stop whenever we like."
+          ],
+          "songSpellID": "starlight_song",
+          "setsFlag": "orchard_awake"
+        },
+        {
+          "id": "take_moon_seed",
+          "goal": "collect",
+          "targetEntityID": "moon_seed",
+          "intro": "A golden moon seed has appeared. Let us pick it up.",
+          "celebration": "You found the moon seed.",
+          "hintLadder": [
+            "A golden moon seed has appeared. Let us pick it up.",
+            "Tap the compass and Ember will guide us. We can stop whenever we like."
+          ],
+          "setsFlag": "moon_seed_found"
+        },
+        {
+          "id": "reach_lantern_nest",
+          "goal": "reach",
+          "targetEntityID": "lantern_nest",
+          "intro": "The seed needs a soft home. Let us visit the lantern nest.",
+          "celebration": "This looks like a lovely home for a little light.",
+          "hintLadder": [
+            "The seed needs a soft home. Let us visit the lantern nest.",
+            "Tap the compass and Ember will guide us. We can stop whenever we like."
+          ]
+        },
+        {
+          "id": "plant_moon_seed",
+          "goal": "talk",
+          "targetEntityID": "lantern_nest",
+          "intro": "Tap the nest to plant our moon seed.",
+          "celebration": "The fireflies have a home! Luma and Ember are celebrating with you.",
+          "hintLadder": [
+            "Tap the nest to plant our moon seed.",
+            "Tap the compass and Ember will guide us. We can stop whenever we like."
+          ],
+          "setsFlag": "orchard_restored"
+        }
+      ]
+    }
+  ],
+  "dialogues": [
+    {
+      "id": "d_intro",
+      "speaker": "@companion",
+      "line": {
+        "base": "There you are! I've been waiting for you. The old oak needs our help — are you ready for an adventure?",
+        "byCompanion": {
+          "ember": "There you are! Yip! I smelled you coming from across the hollow — you smell like adventure! The old oak needs our help. Ready?",
+          "petal": "Ooh, there you are... I watched you walk in from way up high. The old oak needs our help. Shall we have an adventure, you and I?",
+          "clover": "Oh! There you are... I heard your footsteps from across the hollow. The old oak needs our help. Will you come with me?"
+        }
+      },
+      "choices": [
+        {
+          "id": "c_brave",
+          "text": "Yes! Let's go right now!",
+          "nextDialogueID": "d_intro_brave",
+          "memoryKey": "adventure_spirit",
+          "memoryValue": "brave"
+        },
+        {
+          "id": "c_careful",
+          "text": "I'm a little nervous...",
+          "nextDialogueID": "d_intro_careful",
+          "memoryKey": "adventure_spirit",
+          "memoryValue": "careful"
+        }
+      ]
+    },
+    {
+      "id": "d_intro_brave",
+      "speaker": "@companion",
+      "line": {
+        "base": "That's the spirit! Stay close to me and follow the sounds — the forest will show us the way.",
+        "byCompanion": {
+          "ember": "YIP! That's the spirit! Stick with me, brave one — foxes first, adventure always!",
+          "petal": "Ooh, how wonderful! Then let's drift toward the old oak — one wingbeat at a time.",
+          "clover": "Really? You're so brave... okay! I'll stay right beside you the whole way."
+        }
+      },
+      "choices": []
+    },
+    {
+      "id": "d_intro_careful",
+      "speaker": "@companion",
+      "line": {
+        "base": "That's okay — being careful is a kind of brave too. We'll go slowly, and I'll stay right beside you.",
+        "byCompanion": {
+          "ember": "Hey, that's okay! Even foxes get whisker-wobbles. We'll go slow, and I'll be your nose AND your courage. Yip.",
+          "petal": "That's alright, little cloud... nervous wings still fly. We'll go gently, you and I.",
+          "clover": "Me too, actually... but quiet things are brave too. We'll be nervous together — and that's almost the same as brave."
+        }
+      },
+      "choices": []
+    },
+    {
+      "id": "d_home_light",
+      "speaker": "Ember",
+      "line": "Our garden star can light the way for someone else. Where shall we share its light?",
+      "choices": [
+        {
+          "id": "share_with_friends",
+          "text": "For every new friend",
+          "memoryKey": "garden_light_wish",
+          "memoryValue": "friends"
+        },
+        {
+          "id": "share_with_home",
+          "text": "For everyone coming home",
+          "memoryKey": "garden_light_wish",
+          "memoryValue": "home"
+        }
+      ]
+    },
+    {
+      "id": "luma_welcome",
+      "speaker": "luma",
+      "line": "Hello, little explorers. I am Luma. My fireflies need a gentle song and a place to rest. Would you help me make their lantern home?",
+      "choices": [
+        {
+          "id": "help",
+          "text": "We would love to help.",
+          "memoryKey": "luma_friend",
+          "memoryValue": "Helped Luma make a firefly home"
+        },
+        {
+          "id": "learn",
+          "text": "Tell me about the fireflies.",
+          "nextDialogueID": "luma_fireflies"
+        }
+      ]
+    },
+    {
+      "id": "luma_fireflies",
+      "speaker": "luma",
+      "line": "They carry tiny lights through my orchard. The moon harp wakes them, and a moon seed grows a warm place for them to sleep. There is no hurry.",
+      "choices": [
+        {
+          "id": "ready",
+          "text": "Let us find the moon harp.",
+          "memoryKey": "luma_friend",
+          "memoryValue": "Learned about Luma and her fireflies"
+        }
+      ]
+    },
+    {
+      "id": "plant_moon_seed",
+      "speaker": "ember",
+      "line": "Our seed fits perfectly in this soft little nest. What shall we wish for its new firefly family?",
+      "choices": [
+        {
+          "id": "kindness",
+          "text": "A home full of kindness.",
+          "memoryKey": "orchard_wish",
+          "memoryValue": "A home full of kindness"
+        },
+        {
+          "id": "music",
+          "text": "A home full of music.",
+          "memoryKey": "orchard_wish",
+          "memoryValue": "A home full of music"
+        },
+        {
+          "id": "friends",
+          "text": "A home full of friends.",
+          "memoryKey": "orchard_wish",
+          "memoryValue": "A home full of friends"
+        }
+      ]
+    }
+  ],
+  "songSpells": [
+    {
+      "id": "oak_song",
+      "name": "The Oak's Waking Song",
+      "notes": [
+        "do",
+        "re",
+        "mi",
+        "fa",
+        "sol"
+      ],
+      "tempo": 90
+    },
+    {
+      "id": "river_song",
+      "name": "The River Bell Song",
+      "notes": [
+        "do",
+        "mi",
+        "sol"
+      ],
+      "tempo": 85
+    },
+    {
+      "id": "garden_song",
+      "name": "The Lantern Flower Song",
+      "notes": [
+        "sol",
+        "mi",
+        "do"
+      ],
+      "tempo": 80
+    },
+    {
+      "id": "starlight_song",
+      "name": "The firefly lullaby",
+      "notes": [
+        "mi",
+        "sol",
+        "la",
+        "sol",
+        "mi"
+      ],
+      "tempo": 75
+    }
+  ]
+}

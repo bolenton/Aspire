@@ -1,0 +1,6 @@
+{
+  "name": "Lantern.Core",
+  "rootNamespace": "Lantern.Core",
+  "references": [],
+  "noEngineReferences": true
+}

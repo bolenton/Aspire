@@ -70,7 +70,7 @@
                 "farRadius": 35.0,
                 "spokenDescription": "flowing water"
               },
-              "visual": { "shape": "ribbon", "colorHex": "#58C8F0", "scale": 3.0, "glow": 1.2 }
+              "visual": { "shape": "water", "colorHex": "#58C8F0", "scale": 3.0, "glow": 1.2 }
             },
             {
               "id": "old_oak",
@@ -85,7 +85,7 @@
                 "farRadius": 18.0,
                 "spokenDescription": "deep creaking wood"
               },
-              "visual": { "shape": "tree", "colorHex": "#9B6B43", "scale": 4.0, "glow": 1.0 }
+              "visual": { "shape": "tree", "colorHex": "#9B6B43", "scale": 4.0, "glow": 1.0, "assetName": "old_oak" }
             },
             {
               "id": "glowing_acorn",
@@ -124,7 +124,7 @@
                 "farRadius": 14.0,
                 "spokenDescription": "wood creaking over water"
               },
-              "visual": { "shape": "arch", "colorHex": "#8A7B6B", "scale": 2.0, "glow": 0.8 }
+              "visual": { "shape": "arch", "colorHex": "#8A7B6B", "scale": 2.0, "glow": 0.8, "assetName": "broken_bridge" }
             },
             {
               "id": "castle_gate",
@@ -227,7 +227,7 @@
                 }
               },
               "hiddenTease": "I keep feeling like something is murmuring nearby, but it's too quiet for me.",
-              "visual": { "shape": "ribbon", "colorHex": "#7FE2D4", "scale": 1.5, "glow": 1.5 }
+              "visual": { "shape": "water", "colorHex": "#7FE2D4", "scale": 1.5, "glow": 1.5 }
             }
           ]
         }
@@ -299,7 +299,7 @@
                 "farRadius": 24.0,
                 "spokenDescription": "a ringing crystal song"
               },
-              "visual": { "shape": "door", "colorHex": "#9FD8FF", "scale": 1.6, "glow": 1.8 }
+              "visual": { "shape": "door", "colorHex": "#9FD8FF", "scale": 1.6, "glow": 1.8, "assetName": "singing_crystal" }
             },
             {
               "id": "moonstone",
@@ -338,7 +338,7 @@
                 "farRadius": 16.0,
                 "spokenDescription": "a deep sleepy rumble"
               },
-              "visual": { "shape": "mound", "colorHex": "#8FA3B8", "scale": 2.4, "glow": 0.9 },
+              "visual": { "shape": "mound", "colorHex": "#8FA3B8", "scale": 2.4, "glow": 0.9, "assetName": "crystal_guardian" },
               "dialogueID": "d_guardian"
             },
             {
@@ -354,7 +354,7 @@
                 }
               },
               "hiddenTease": "Something near the cave wall smells faintly sweet, but I can't tell what it is.",
-              "visual": { "shape": "mound", "colorHex": "#B8FF7A", "scale": 0.8, "glow": 1.6 }
+              "visual": { "shape": "mound", "colorHex": "#B8FF7A", "scale": 0.8, "glow": 1.6, "assetName": "glow_mushrooms" }
             },
             {
               "id": "high_geode",
@@ -369,7 +369,7 @@
                 }
               },
               "hiddenTease": "Something glitters way up on the high ledge, but it's too far to see.",
-              "visual": { "shape": "nest", "colorHex": "#C9A0FF", "scale": 1.1, "glow": 1.7 }
+              "visual": { "shape": "nest", "colorHex": "#C9A0FF", "scale": 1.1, "glow": 1.7, "assetName": "high_geode" }
             },
             {
               "id": "underground_river",
@@ -392,7 +392,7 @@
                 }
               },
               "hiddenTease": "Sometimes the floor seems to murmur down low, but it's too quiet for me.",
-              "visual": { "shape": "ribbon", "colorHex": "#6FB8E8", "scale": 1.8, "glow": 1.4 }
+              "visual": { "shape": "water", "colorHex": "#6FB8E8", "scale": 1.8, "glow": 1.4 }
             }
           ]
         }
@@ -464,7 +464,7 @@
                 "farRadius": 30.0,
                 "spokenDescription": "deep sleepy bells"
               },
-              "visual": { "shape": "tree", "colorHex": "#D8C9A8", "scale": 3.2, "glow": 1.3 }
+              "visual": { "shape": "tree", "colorHex": "#D8C9A8", "scale": 3.2, "glow": 1.3, "assetName": "bell_tower" }
             },
             {
               "id": "lantern_keeper",
@@ -479,7 +479,7 @@
                 "farRadius": 14.0,
                 "spokenDescription": "a warm humming lantern"
               },
-              "visual": { "shape": "sphere", "colorHex": "#FFC76B", "scale": 1.2, "glow": 1.6 },
+              "visual": { "shape": "sphere", "colorHex": "#FFC76B", "scale": 1.2, "glow": 1.6, "assetName": "lantern_keeper" },
               "dialogueID": "d_keeper"
             },
             {
@@ -495,7 +495,7 @@
                 "farRadius": 18.0,
                 "spokenDescription": "a lantern humming to the east"
               },
-              "visual": { "shape": "sphere", "colorHex": "#FFD24A", "scale": 1.0, "glow": 1.4 }
+              "visual": { "shape": "sphere", "colorHex": "#FFD24A", "scale": 1.0, "glow": 1.4, "assetName": "lantern_post" }
             },
             {
               "id": "lantern_west",
@@ -510,7 +510,7 @@
                 "farRadius": 18.0,
                 "spokenDescription": "a lantern humming to the west"
               },
-              "visual": { "shape": "sphere", "colorHex": "#FFD24A", "scale": 1.0, "glow": 1.4 }
+              "visual": { "shape": "sphere", "colorHex": "#FFD24A", "scale": 1.0, "glow": 1.4, "assetName": "lantern_post" }
             },
             {
               "id": "biscuit_stall",
@@ -525,7 +525,7 @@
                 }
               },
               "hiddenTease": "Something over there smells faintly of honey, but I can't tell what it is.",
-              "visual": { "shape": "mound", "colorHex": "#E8A33D", "scale": 1.0, "glow": 1.4 }
+              "visual": { "shape": "mound", "colorHex": "#E8A33D", "scale": 2.5, "glow": 1.4, "assetName": "biscuit_stall" }
             },
             {
               "id": "flag_garland",

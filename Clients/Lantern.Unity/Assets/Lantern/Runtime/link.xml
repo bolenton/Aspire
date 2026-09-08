@@ -1,0 +1,17 @@
+<linker>
+  <!-- CreatePrimitive adds these through native code, outside managed dependency analysis. -->
+  <assembly fullname="UnityEngine.CoreModule">
+    <type fullname="UnityEngine.MeshFilter" preserve="all" />
+    <type fullname="UnityEngine.MeshRenderer" preserve="all" />
+  </assembly>
+  <assembly fullname="UnityEngine.PhysicsModule">
+    <type fullname="UnityEngine.BoxCollider" preserve="all" />
+    <type fullname="UnityEngine.SphereCollider" preserve="all" />
+    <type fullname="UnityEngine.CapsuleCollider" preserve="all" />
+  </assembly>
+  <assembly fullname="Lantern.Core" preserve="all" />
+  <assembly fullname="Lantern.Unity">
+    <type fullname="Lantern.Unity.Platform.AppleSpeech" preserve="all" />
+    <type fullname="Lantern.Unity.Platform.AppleSpeech/Message" preserve="all" />
+  </assembly>
+</linker>

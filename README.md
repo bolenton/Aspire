@@ -6,6 +6,8 @@ native for iOS, designed so that **sound is the world and vision confirms it**.
 Built for one brilliant 9-year-old, and shipped in her honor for every kid
 like her.
 
+The Unity port is under development in [Clients/Lantern.Unity](Clients/Lantern.Unity/README.md). Lantern Meadow now has newly authored characters and scenery, touch-anywhere movement, optional visible controls/captions, and a new recorded sound set. See [port status](Docs/UnityPortStatus.md) for exact Editor/device verification and remaining work. The instructions below still describe the existing Swift app.
+
 ## How it plays
 
 She chooses a companion — **Ember the fox**, **Petal the butterfly**, or

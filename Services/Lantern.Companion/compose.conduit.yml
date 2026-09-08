@@ -1,0 +1,12 @@
+# Share inference containers without changing their services or exposing new ports.
+services:
+  companion:
+    networks:
+      - speech
+    environment:
+      LANTERN_WHISPER_URL: http://whisper:8080
+      LANTERN_PIPER_URL: http://piper:5000
+networks:
+  speech:
+    external: true
+    name: conduit-speech_default
