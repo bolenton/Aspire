@@ -67,11 +67,12 @@ namespace Lantern.Unity.World
                 if(entity.Id=="luma")
                 {
                     await CreateLandmarkAsync(anchor,"Luma",1.35f,false);
-                    var model=anchor.GetComponentInChildren<AuthoredModel>();model.transform.localRotation=Quaternion.Euler(0,180,0);
+                    var model=anchor.GetComponentInChildren<AuthoredModel>();model.transform.localRotation=Quaternion.identity;
                     model.gameObject.AddComponent<CharacterMotion>().Initialize(anchor);
                 }
             }
             await CreatePlayerAsync();
+            if(Anchors.TryGetValue("luma",out var owl))owl.gameObject.AddComponent<WoodlandFriend>().Explorer=Player.transform;
             var fox = new GameObject("Ember artwork");
             fox.transform.SetParent(Anchors[StoryPack.CompanionPlaceholder], false);
             fox.transform.localRotation = Quaternion.Euler(0,180,0);
@@ -162,7 +163,15 @@ namespace Lantern.Unity.World
             follow.Obstacles = new[]
             {
                 new Bounds(new Vector3(0,3,17),new Vector3(3.8f,6,3.8f)),
-                new Bounds(new Vector3(17,1.9f,6),new Vector3(.85f,3.8f,3.6f))
+                new Bounds(new Vector3(17,1.9f,6),new Vector3(.85f,3.8f,3.6f)),
+                new Bounds(new Vector3(-14,2,8),new Vector3(1,4.2f,4.4f)),
+                new Bounds(new Vector3(-19,2.8f,10),new Vector3(1.2f,5.6f,1.2f)),
+                new Bounds(new Vector3(-28,2.8f,13),new Vector3(1.2f,5.6f,1.2f)),
+                new Bounds(new Vector3(-36,2.8f,10),new Vector3(1.2f,5.6f,1.2f)),
+                new Bounds(new Vector3(-38,2.8f,3),new Vector3(1.2f,5.6f,1.2f)),
+                new Bounds(new Vector3(-37,2.8f,-9),new Vector3(1.2f,5.6f,1.2f)),
+                new Bounds(new Vector3(-28,2.8f,-10),new Vector3(1.2f,5.6f,1.2f)),
+                new Bounds(new Vector3(-21,2.8f,-7),new Vector3(1.2f,5.6f,1.2f))
             };
             follow.Snap();
         }

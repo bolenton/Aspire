@@ -23,10 +23,18 @@ func main() {
 		os.Exit(1)
 	}
 	defer store.Close()
-	app := companion.NewServer(c, store, companion.NewEngines(c))
+	engines := companion.NewEngines(c)
+	app := companion.NewServer(c, store, engines)
 	server := &http.Server{Addr: c.Address, Handler: app.Handler(), ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16 << 10}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	go func() {
+		warm, cancel := context.WithTimeout(ctx, 60*time.Second)
+		defer cancel()
+		if err := engines.Warm(warm); err != nil {
+			slog.Warn("model warmup unavailable; will retry on next conversation")
+		}
+	}()
 	go func() {
 		<-ctx.Done()
 		shutdown, cancel := context.WithTimeout(context.Background(), 5*time.Second)

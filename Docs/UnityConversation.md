@@ -1,37 +1,27 @@
-# Ember conversation in the Unity client
+# Ember conversation — family server
 
-The Unity client can use Apple's on-device language model for short, friendly conversations. It also includes authored stories, a joke, reassurance and local navigation commands, which work without that model. Speech recognition already requests on-device processing; raw audio and conversation transcripts are not saved by Lantern or sent to a backend.
+Ember uses the family's Whisper, Ollama and Piper installation on Epyst-intel. The separate Dockerized Lantern service is published privately at `https://epyst-intel.story-tarpon.ts.net:8443`. Conduit retains its existing port 443 route. Devices need Tailscale access; the game and native voice remain usable when the server is unavailable.
 
-## Player experience
+## Game experience
 
-Tap Ember or the microphone, then speak. The existing microphone gets a clear activity ring while listening, thinking or speaking. Tap it again while listening or thinking to cancel. Touch movement, pause, a new request, an activity change, and backgrounding invalidate pending answers. A model answer cannot move the player, unlock an object, or complete an activity.
+Tap the microphone to start a conversation. Listening ends after a natural pause, and starts again after Ember finishes replying. Tap again to interrupt/end the conversation. The microphone is suppressed during playback to prevent Ember hearing its own answer; this is automatic turn-taking, not simultaneous full-duplex audio. Movement, pause, backgrounding and changing activities can stop a conversation. Listening, thinking and speaking have distinct small icon states and Ember head/ear/jaw animation. Captions and a visible joystick remain optional.
 
-Examples: “Tell me a story,” “Tell me a joke,” “Take me to the tree,” “Where is the river bell?” and “Stop.” Familiar names such as tree, home, river, bridge, garden and star resolve through aliases on the authored entities. Unknown explicit destinations do not start movement. Nearby guidance says to tap the object; there is no obsolete large action-button instruction.
+Local commands such as “guide me,” “take me to Luma,” “which way,” and “stop” stay deterministic. The model can explain, imagine little stories, remember dialogue, and react to progress. It cannot execute movement, change inventory, unlock content or award progress.
 
-Pause → Comfort settings → Ember's voice and conversation shows device availability, a built-in-only option, sample story/joke actions, and Forget this conversation. The choice is saved; old saves default to using the on-device model when available. No account, API key or service subscription is needed.
+## Maintainable boundaries
 
-## Boundaries
+- `Lantern.Core/Companion/AdventureWorld` builds the authoritative scene/region/objective snapshot, known landmarks, exact route guidance, inventory, earned achievements and recent game journal/events. It excludes the child-name setting and full save vault.
+- `CompanionConnection` owns authenticated WebSocket transport, pairing, reconnect and revision-tagged requests. iOS credentials live in Keychain. Local bootstrap configuration is excluded from Git.
+- `CompanionVoice` coordinates native microphone capture, sentence WAV playback, cancellation and the on-device fallback. `SpeechPlayback` owns PCM decoding and mouth-animation amplitude.
+- `ServerConversation` implements the existing core provider interface. `CompanionCommands` owns all game actions. Apple Foundation Models remain the optional offline provider on supported devices.
+- `Services/Lantern.Companion` separates the protocol, world/prompt contract, inference adapters and SQLite storage. Whisper receives 16 kHz mono PCM wrapped in WAV. Ollama streams text; Piper produces one WAV per sentence as generation continues.
 
-- `Lantern.Core/Companion/CompanionCommands` owns deterministic commands and route checks. Generated text has no action capability.
-- `CompanionConversation` owns cancellation and the eight-second fallback deadline, including providers that ignore cancellation.
-- `CompanionSmallTalk` provides authored fallback responses. These are not presented as model-generated replies.
-- `ConversationPrompt` sends current scene, quest, hint and up to six available nearby entities, plus at most four recent exchanges kept in memory. It does not receive the save vault, child-name setting, avatar or journals.
-- `AppleConversation` implements the provider behind Unity's native bridge, owns the short conversation window, and discards expired callbacks. History clears on a changed activity, backgrounding, explicit Forget, or switching conversation mode.
-- `LanternConversation.swift` creates a fresh Foundation Models session with the current context. Apple's default guardrails stay enabled. Output is short and intended for speech. The instructions guide style and grounding; they are not a guarantee that every generated sentence will be appropriate or factually correct.
-- `VoiceIndicator` owns the small visual status ring and spoken control labels. `AdventureController` continues to coordinate navigation and activity interaction.
+The server keeps the latest 24 dialogue messages per device/adventure and sends the latest 12 to the model. Saved game journal entries supply longer-term adventure context. Parent settings can forget the server conversation without resetting game progress. Microphone audio is transient; normal application logs contain no player transcripts. Generated dialogue is constrained by an authored child-friendly persona and current game facts, but remains generated content requiring parent playtesting.
 
-Apple Intelligence hardware, iOS/iPadOS 26+, an enabled Apple Intelligence setting, supported language/region, and a downloaded model are required for generation. Unavailable models, rejected generations, and timeouts use authored responses. The editor uses authored responses. There is no remote provider or Docker backend in this phase; `IConversationProvider` remains the extension point for a later self-hosted service.
+## Verification and operating guide
 
-## Verification
+The server README documents deployment, pairing, protocol and the synthetic live probe. Unit integration checks cover authorization, speech flow, memory isolation, cancellation and stale-world rejection. The real-server probe uses an authored synthetic utterance, not a person's microphone recording. Initial measurements with `gemma4:12b` on the server's RTX 3090: first sentence after a cold model load 11.16 s, warm follow-up 0.48 s; both answers correctly referenced the Orchard objective, Luma and the fireflies. Startup model warming reduces initial loading delay.
 
-Core checks cover familiar/unknown/locked destinations, commands bypassing the model, generated text having no action, timeout fallback even with an uncooperative provider, omission of locked places, saved preferences, and discarding a reply superseded by Stop.
+Development-only `LANTERN_VERIFY_SERVER=1` exercises device authentication, an authored contextual question, streamed Piper playback completion and cancellation. `LANTERN_VERIFY_CONVERSATION=1` remains the separate Apple provider probe. Neither is a physical microphone acceptance test. Actual spoken input, room echo, interruption and the child's comfort are separate acceptance checks.
 
-Development builds accept `LANTERN_VERIFY_CONVERSATION=1` with `LANTERN_START_ADVENTURE=1`. This sends an authored test question through the actual controller/provider, reports model availability and latency, then cancels a follow-up. Only this opt-in check logs its authored test reply. It does not exercise microphone recognition and must not be described as a physical voice test.
-
-On the actual iPad Pro 11-inch (4th generation), build 8 reported model availability, generated a firefly-story reply in 5.97 seconds, and passed cancellation of a follow-up. All 20 core checks and the final 13-activity native playthrough passed. The existing normal save was preserved. Evidence is in `.artifacts/unity/ipad-conversation-build8.log` and `.artifacts/unity/ipad-playthrough-build8.log`.
-
-Physical acceptance still includes microphone permission, a spoken conversation, VoiceOver control announcements, interruptions, and the child's comfort with voice/timing. A successful generated test reply is not a comprehensive model-content evaluation.
-
-## Apple references
-
-[Generating content with Foundation Models](https://developer.apple.com/documentation/foundationmodels/generating-content-and-performing-tasks-with-foundation-models) and [generation options](https://developer.apple.com/documentation/foundationmodels/generationoptions). API signatures were also checked against the installed Xcode 26.6 iOS SDK and the native bridge was type-checked with the iOS 18 deployment target.
+See [server deployment](../Services/Lantern.Companion/README.md) and [device evidence](UnityDeviceCheck.md).

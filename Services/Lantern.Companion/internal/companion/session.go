@@ -221,7 +221,7 @@ func (c *connection) transcribe(id int64) error {
 		defer cancel()
 		text, err := c.server.engines.Transcribe(ctx, audio)
 		c.mu.Lock()
-		valid := c.active == id && ctx.Err() == nil
+		valid := c.active == id && turnCtx.Err() == nil
 		if c.cancel == nil {
 			valid = false
 		}

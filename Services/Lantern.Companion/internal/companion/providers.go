@@ -158,3 +158,15 @@ func (p *LocalEngines) Health(ctx context.Context) error {
 	}
 	return nil
 }
+
+// Prepare the model once at service startup, before a child's first spoken turn.
+func (p *LocalEngines) Warm(ctx context.Context) error {
+	raw, _ := json.Marshal(map[string]any{"model": p.Config.Model, "keep_alive": "30m"})
+	res, err := p.request(ctx, strings.TrimRight(p.Config.OllamaURL, "/")+"/api/generate", "application/json", bytes.NewReader(raw))
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+	_, err = io.Copy(io.Discard, io.LimitReader(res.Body, 16384))
+	return err
+}

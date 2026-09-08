@@ -123,6 +123,8 @@ namespace Lantern.Unity.Composition
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
                 if(Environment.GetEnvironmentVariable("LANTERN_VERIFY_EXPANSION")=="1")
                     gameObject.AddComponent<DevelopmentPlaythrough>().Run(pack,slot,world,hud);
+                if(Environment.GetEnvironmentVariable("LANTERN_VERIFY_SERVER")=="1")
+                    gameObject.AddComponent<DevelopmentServerConversation>().Run(adventure,server,voice);
                 if(Environment.GetEnvironmentVariable("LANTERN_VERIFY_CONVERSATION")=="1")
                     gameObject.AddComponent<DevelopmentConversation>().Run(adventure,conversation);
 #endif

@@ -53,7 +53,7 @@ namespace Lantern.Unity.Companion
         private async Task NarrateAsync(long id,string text)
         {
             try {await connection.RequestAsync(id,"speak",text,destroyCancellationToken);}
-            catch(OperationCanceledException){}
+            catch(OperationCanceledException){if(id==active){waitingAudio=false;playback.Stop();fallback.Speak(text);}}
             catch(HttpRequestException){if(id==active){waitingAudio=false;playback.Stop();fallback.Speak(text);}}
         }
         public void BeginReply(long id){Stop();active=id;waitingAudio=true;RefreshBusy();}
