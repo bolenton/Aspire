@@ -112,7 +112,7 @@ namespace Lantern.Unity.Presentation
 
         public void ShowAdventure(string action)
         {
-            Clear(); IsAdventure = true; currentAction = action;
+            Clear(); IsAdventure = true; currentPageTitle="Exploring"; currentAction = action;
             var surface = ui.Rect("Touch anywhere to move",content,Vector2.zero,Vector2.one);
             surface.gameObject.AddComponent<Image>().color = Color.clear;
             var movement = surface.gameObject.AddComponent<TouchMovement>();
@@ -138,7 +138,7 @@ namespace Lantern.Unity.Presentation
 
         public void ShowMelody(string words,IReadOnlyList<SolfegeNote> notes,Action<SolfegeNote> play,Action repeat,Action back)
         {
-            Clear(); IsAdventure=false;
+            Clear(); IsAdventure=false; currentPageTitle="Playing an untimed chime song";
             var songWords=ui.Rect("Song caption",content,new Vector2(.15f,.78f),new Vector2(.85f,.96f));
             caption=ui.Text("Spoken song",songWords,words,28);caption.color=profile.ShowCaptions ? palette.Foreground : Color.clear;
             if(profile.ShowCaptions){var panel=ui.Panel(songWords);panel.raycastTarget=false;}

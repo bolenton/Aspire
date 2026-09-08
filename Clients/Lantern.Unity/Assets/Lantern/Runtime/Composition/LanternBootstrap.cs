@@ -182,7 +182,7 @@ namespace Lantern.Unity.Composition
             hud.ShowChoices(server.Status + " " + (server.Connected ? "Whisper listens and Piper speaks on your family server. Recent conversation is remembered for this adventure." : conversation.Status), new List<(string,Action)>
             {
                 (vault.Calibration.UseFamilyServer ? "Use on-device voice instead" : "Use family server voice", () => {adventure.Stop();vault.Calibration.UseFamilyServer=!vault.Calibration.UseFamilyServer;server.SetEnabled(vault.Calibration.UseFamilyServer);Save();ShowConversationSettings();}),
-                (vault.Calibration.OnDeviceConversation ? "Use built-in conversation only" : "Enable on-device conversation", () =>
+                (vault.Calibration.OnDeviceConversation ? "Use simple offline replies" : "Use on-device AI offline", () =>
                 {
                     adventure.Stop(); conversation.ForgetConversation();
                     vault.Calibration.OnDeviceConversation = !vault.Calibration.OnDeviceConversation;

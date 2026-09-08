@@ -121,7 +121,7 @@ func run() error {
 		}
 		if event.Type == "transcript" {
 			transcript = event.Text
-			fmt.Printf("Whisper authored transcript: %s\n", transcript)
+			fmt.Printf("Whisper authored transcript: %s; recognition: %.2fs\n", transcript, time.Since(started).Seconds())
 			id = 2
 			started = time.Now()
 			if err = send(map[string]any{"type": "reply", "id": id, "text": transcript, "revision": 1}); err != nil {

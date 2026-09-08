@@ -1,4 +1,20 @@
-# Lantern Meadow device check
+# Orchard / family-server verification — 2026-09-07
+
+- Unity Editor: the full **21-activity** playthrough passed after correcting the Orchard entrance camera. It exercised navigation, visible world taps, Luma dialogue, moon-harp chimes, collecting the moon seed and restoring the nest. Screenshots were inspected from the actual renderer.
+- Local C#: all **20** core checks passed. Go's race/integration checks passed, including a long pre-speech pause, authentication, memory isolation, cancellation and stale world revisions.
+- Server: source pushed to GitHub, pulled in `/home/suruat/Projects/Aspire`, and the separate `lantern-companion` Docker service deployed using the existing rootless Docker installation. Existing Whisper was restarted; Piper and Conduit's port 443 route retained. Ollama uses the installed `gemma4:12b` on RTX 3090.
+- Live synthetic pipeline: Piper generated an authored question, Whisper transcribed it, the model answered using the Orchard objective, and streamed Piper WAVs arrived with a contextual follow-up. After matching warm-up to the conversation context, first audio arrived in **0.65 s**, follow-up **0.58 s** after transcription. No physical microphone input was used for this probe.
+- Unity client against the private HTTPS/WebSocket endpoint: an authored open-ended question returned in **2.23 s**, three Piper sentences played to completion, and cancelling the next question prevented a stale reply. This was the Editor client, not a phone playback result.
+- Signed iOS build **0.1.0 (9)** compiled and installed on Orange iPhone after one interrupted wireless attempt. The normal save remained **byte-identical** after installation. Launch was rejected by iOS because the phone was locked. The iPad was unavailable to CoreDevice.
+- Build **10** includes the corrected development probe and clearer offline settings wording; final build/install status will be recorded below.
+
+Evidence: `.artifacts/unity/expansion-editor-build9-pass2.log`, `server-voice-probe-warmup.log`, `server-editor-build9.log`, `iphone-install-build9-retry.json`, `iphone-server-build9.log`, and before/after vault copies. Local artifact logs are excluded from Git. The initial Editor server probe accidentally chose a deterministic local-command phrase; the corrected open-ended phrase passed. This test correction did not reveal a speech transport failure.
+
+Remaining physical acceptance: unlock the phone, connect Tailscale, verify live microphone permission/capture, speech recognition, Piper playback, interruption, echo behavior and comfortable pacing. Install/check the iPad when reachable. Automated handler tests do not substitute for the child's actual touch/voice experience.
+
+## Prior device milestones
+
+### Lantern Meadow device check
 
 Use **Lantern Unity**, bundle `com.bolenton.Lantern.UnitySlice`. The current adventure is a vertical slice. Speech supports local guidance commands; open-ended conversational AI is not connected yet.
 

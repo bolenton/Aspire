@@ -63,7 +63,7 @@ func (c *connection) stop() {
 	c.listening = false
 	c.audio = nil
 }
-func (c *connection) begin(id int64) (context.Context, error) {
+func (c *connection) begin(id int64, timeout time.Duration) (context.Context, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if id <= c.active {
@@ -72,7 +72,7 @@ func (c *connection) begin(id int64) (context.Context, error) {
 	if c.cancel != nil {
 		c.cancel()
 	}
-	ctx, cancel := context.WithTimeout(c.ctx, 45*time.Second)
+	ctx, cancel := context.WithTimeout(c.ctx, timeout)
 	c.cancel = cancel
 	c.turnCtx = ctx
 	c.active = id
@@ -115,7 +115,7 @@ func (c *connection) receive(m message) error {
 		}
 		c.mu.Unlock()
 	case "listen":
-		ctx, err := c.begin(m.ID)
+		ctx, err := c.begin(m.ID, 70*time.Second)
 		if err != nil {
 			return err
 		}
@@ -126,10 +126,14 @@ func (c *connection) receive(m message) error {
 			select {
 			case <-time.After(25 * time.Second):
 				c.mu.Lock()
-				waiting := c.active == m.ID && c.listening
+				waiting := c.active == m.ID && c.listening && c.voiced == 0
+				if waiting {
+					c.cancel()
+					c.listening = false
+					c.audio = nil
+				}
 				c.mu.Unlock()
 				if waiting {
-					c.stop()
 					_ = c.send(c.ctx, map[string]any{"type": "idle", "id": m.ID})
 				}
 			case <-ctx.Done():
@@ -144,7 +148,7 @@ func (c *connection) receive(m message) error {
 		if len(m.Text) == 0 || len(m.Text) > 2500 {
 			return fmt.Errorf("invalid text length")
 		}
-		ctx, err := c.begin(m.ID)
+		ctx, err := c.begin(m.ID, 45*time.Second)
 		if err != nil {
 			return err
 		}
@@ -186,6 +190,10 @@ func (c *connection) audioChunk(m message) error {
 	}
 	rms := math.Sqrt(energy / math.Max(1, float64(len(data)/2)))
 	c.audio = append(c.audio, data...)
+	// Keep a short pre-roll while waiting, so thinking time does not consume the utterance limit.
+	if c.voiced == 0 && rms <= 260 && len(c.audio) > 16000 {
+		c.audio = c.audio[len(c.audio)-16000:]
+	}
 	if rms > 260 {
 		c.voiced += len(data)
 		c.silence = 0

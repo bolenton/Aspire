@@ -103,6 +103,11 @@ func TestVoiceWorldMemoryAndPiperRoundTrip(t *testing.T) {
 	sendTest(t, ctx, ws, message{Type: "world", World: &world})
 	sendTest(t, ctx, ws, message{Type: "listen", ID: 1})
 	readUntil(t, ctx, ws, "listening")
+	// A long thinking pause must not consume the eventual speech recording.
+	silent := base64.StdEncoding.EncodeToString(make([]byte, 6400))
+	for i := 0; i < 105; i++ {
+		sendTest(t, ctx, ws, message{Type: "audio", ID: 1, PCM: silent})
+	}
 	pcm := bytes.Repeat([]byte{0x00, 0x10}, 6400)
 	sendTest(t, ctx, ws, message{Type: "audio", ID: 1, PCM: base64.StdEncoding.EncodeToString(pcm)})
 	sendTest(t, ctx, ws, message{Type: "commit", ID: 1})
