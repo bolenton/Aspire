@@ -44,9 +44,10 @@ namespace Lantern.Unity.Platform
         }
         public void Stop()
         {
+            var wasActive=IsListening || IsSpeaking;
             request++;
 #if UNITY_IOS && !UNITY_EDITOR
-            LanternSpeechStop();
+            if(wasActive) LanternSpeechStop();
 #endif
             IsListening = IsSpeaking = false;
             BusyChanged?.Invoke(false);

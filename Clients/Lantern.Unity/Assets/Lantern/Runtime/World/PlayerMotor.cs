@@ -7,6 +7,7 @@ using UnityEngine.AI;
 namespace Lantern.Unity.World
 {
     [RequireComponent(typeof(NavMeshAgent))]
+    [DefaultExecutionOrder(20)]
     public sealed class PlayerMotor : MonoBehaviour
     {
         private NavMeshAgent agent;
@@ -49,6 +50,7 @@ namespace Lantern.Unity.World
         {
             if (direction.sqrMagnitude > .001f && guiding) Stop();
             manual = Vector2.zero;
+            agent.updateRotation=false;
             worldInput = Vector3.ClampMagnitude(Vector3.ProjectOnPlane(direction,Vector3.up),1);
         }
         public void Step(float forward, float turn)
@@ -62,6 +64,7 @@ namespace Lantern.Unity.World
             Stop();
             var path = Route(destination);
             if (path == null) return false;
+            agent.updateRotation=true;
             agent.isStopped = false;
             guiding = agent.SetPath(path);
             lastPosition = transform.position;
@@ -98,7 +101,7 @@ namespace Lantern.Unity.World
             if (!agent.isOnNavMesh) return;
             if (worldInput.sqrMagnitude > .001f)
             {
-                transform.rotation = Quaternion.RotateTowards(transform.rotation,Quaternion.LookRotation(worldInput),180*Time.deltaTime);
+                transform.rotation = Quaternion.RotateTowards(transform.rotation,Quaternion.LookRotation(worldInput),240*Time.deltaTime);
                 agent.Move(worldInput * (WalkSpeed*Time.deltaTime));
             }
             if (Mathf.Abs(turnRemaining) > .01f)

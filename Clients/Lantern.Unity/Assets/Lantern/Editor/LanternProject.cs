@@ -49,7 +49,7 @@ namespace Lantern.Unity.Editor
             PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.iOS, "com.bolenton.Lantern.UnitySlice");
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.iOS, ScriptingImplementation.IL2CPP);
             PlayerSettings.iOS.targetOSVersionString = "18.0";
-            PlayerSettings.iOS.buildNumber = "10";
+            PlayerSettings.iOS.buildNumber = "12";
             PlayerSettings.iOS.targetDevice = iOSTargetDevice.iPhoneAndiPad;
             PlayerSettings.iOS.appleEnableAutomaticSigning = true;
             PlayerSettings.defaultInterfaceOrientation = UIOrientation.AutoRotation;

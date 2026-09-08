@@ -94,7 +94,9 @@ namespace Lantern.Unity.Companion
                 await socket.ConnectAsync(uri.Uri,setup.Token);
                 Status="Connected to Ember's home server.";ConnectionChanged?.Invoke(true);
                 if(world!=null)SetWorld(world);
-                _ = ReceiveLoop(socket,connectionLife.Token);_ = SendLoop(socket,connectionLife.Token);
+                var connectedSocket=socket;var connectedLife=connectionLife.Token;
+                _ = Task.Run(() => ReceiveLoop(connectedSocket,connectedLife));
+                _ = Task.Run(() => SendLoop(connectedSocket,connectedLife));
             }
             catch(Exception error) when(error is HttpRequestException || error is WebSocketException || error is OperationCanceledException || error is InvalidOperationException)
             { Disconnect("Ember's server is unavailable. The adventure and local voice still work."); }
@@ -112,13 +114,13 @@ namespace Lantern.Unity.Companion
                     inbox.Enqueue(JObject.Parse(Encoding.UTF8.GetString(message.ToArray())));
                 }
             }
-            catch(Exception error) when(error is WebSocketException || error is OperationCanceledException || error is JsonException)
+            catch(Exception error) when(error is WebSocketException || error is OperationCanceledException || error is ObjectDisposedException || error is JsonException)
             { if(!cancel.IsCancellationRequested)inbox.Enqueue(new JObject{{"type","disconnected"}}); }
         }
         private async Task SendLoop(ClientWebSocket current,CancellationToken cancel)
         {
             try {while(!cancel.IsCancellationRequested){await outgoingSignal.WaitAsync(cancel);if(outgoing.TryDequeue(out var bytes))await current.SendAsync(new ArraySegment<byte>(bytes),WebSocketMessageType.Text,true,cancel);}}
-            catch(Exception error) when(error is WebSocketException || error is OperationCanceledException)
+            catch(Exception error) when(error is WebSocketException || error is OperationCanceledException || error is ObjectDisposedException)
             {if(!cancel.IsCancellationRequested)inbox.Enqueue(new JObject{{"type","disconnected"}});}
         }
         private void Update()

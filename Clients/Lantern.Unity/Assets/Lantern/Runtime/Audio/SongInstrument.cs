@@ -11,6 +11,7 @@ namespace Lantern.Unity.Audio
         public event System.Action<SolfegeNote> NotePlayed;
         private AudioSource source;
         private AudioClip bell;
+        public bool IsPlaying=>source!=null && source.isPlaying;
         // The new recorded bell's dominant resonance was measured from its FFT.
         private const float RecordedPitch = 239.6f;
         private static readonly float[] Frequencies = { 261.63f,293.66f,329.63f,349.23f,392,440,493.88f };

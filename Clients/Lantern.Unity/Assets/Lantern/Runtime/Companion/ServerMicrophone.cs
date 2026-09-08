@@ -9,6 +9,9 @@ namespace Lantern.Unity.Companion
     {
         private long request;
         public event Action<long,string> Chunk;
+        public event Action<long> Ready;
+        public float Level {get;private set;}
+        public long Frames {get;private set;}
         public event Action<string> Failed;
         private void Awake()
         {
@@ -28,7 +31,7 @@ namespace Lantern.Unity.Companion
         }
         public void Stop()
         {
-            request=-1;
+            request=-1;Level=0;
 #if UNITY_IOS && !UNITY_EDITOR
             LanternMicrophoneStop();
 #endif
@@ -36,15 +39,24 @@ namespace Lantern.Unity.Companion
         public void OnMicrophoneMessage(string json)
         {
             var value=JObject.Parse(json);var id=value.Value<long>("id");if(id!=request)return;
-            if(value.Value<string>("type")=="pcm")Chunk?.Invoke(id,value.Value<string>("pcm"));
+            if(value.Value<string>("type")=="pcm"){Level=value.Value<float>("level");Frames++;Chunk?.Invoke(id,value.Value<string>("pcm"));}
+            else if(value.Value<string>("type")=="ready")Ready?.Invoke(id);
             else Failed?.Invoke(value.Value<string>("text")??"The microphone paused.");
         }
-        private void OnApplicationPause(bool paused){if(paused)Stop();}
-        private void OnDestroy()=>Stop();
+        public void CloseSession()
+        {
+            Stop();
+#if UNITY_IOS && !UNITY_EDITOR
+            LanternMicrophoneShutdown();
+#endif
+        }
+        private void OnApplicationPause(bool paused){if(paused)CloseSession();}
+        private void OnDestroy()=>CloseSession();
 #if UNITY_IOS && !UNITY_EDITOR
         [DllImport("__Internal")]private static extern void LanternMicrophoneInitialize(string receiver);
         [DllImport("__Internal")]private static extern void LanternMicrophoneStart(int request);
         [DllImport("__Internal")]private static extern void LanternMicrophoneStop();
+        [DllImport("__Internal")]private static extern void LanternMicrophoneShutdown();
 #endif
     }
 }

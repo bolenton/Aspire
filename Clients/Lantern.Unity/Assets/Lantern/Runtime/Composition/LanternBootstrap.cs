@@ -43,7 +43,7 @@ namespace Lantern.Unity.Composition
                 var saveName = "vault.json";
                 var verifying = false;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-                verifying = Environment.GetEnvironmentVariable("LANTERN_VERIFY_EXPANSION") == "1";
+                verifying = Environment.GetEnvironmentVariable("LANTERN_VERIFY_EXPANSION") == "1" || Environment.GetEnvironmentVariable("LANTERN_VERIFY_VOICE_MODE") == "1";
                 if(verifying) saveName = "verification-vault.json";
 #endif
                 store = new VaultStore(Path.Combine(Application.persistentDataPath,saveName));
@@ -123,6 +123,8 @@ namespace Lantern.Unity.Composition
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
                 if(Environment.GetEnvironmentVariable("LANTERN_VERIFY_EXPANSION")=="1")
                     gameObject.AddComponent<DevelopmentPlaythrough>().Run(pack,slot,world,hud);
+                if(Environment.GetEnvironmentVariable("LANTERN_VERIFY_VOICE_MODE")=="1")
+                    gameObject.AddComponent<DevelopmentVoiceMode>().Run(adventure,server,voice,world,hud);
                 if(Environment.GetEnvironmentVariable("LANTERN_VERIFY_SERVER")=="1")
                     gameObject.AddComponent<DevelopmentServerConversation>().Run(adventure,server,voice);
                 if(Environment.GetEnvironmentVariable("LANTERN_VERIFY_CONVERSATION")=="1")

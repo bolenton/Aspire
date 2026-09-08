@@ -14,7 +14,7 @@ Local build input `Clients/Lantern.Unity/Assets/StreamingAssets/CompanionServer.
 
 Authenticated WebSocket `/v1/companion`: client sends `world`, then `listen` and base64 mono PCM16 at 16 kHz in `audio` frames. Silence ends a turn, Whisper emits `transcript`, and the game handles local navigation commands before sending `reply`. `reply` includes an increasing request ID and world revision. The service streams `text` and complete sentence WAVs in `audio`, followed by `done`. `cancel`, a changed adventure/progression revision, disconnect or timeout cancel pending inference. `speak` uses Piper for authored game narration. `forget` clears the current adventure's server dialogue.
 
-Listening is automatic between conversational turns, with half-duplex microphone suppression during reply playback. Tapping the microphone can interrupt. This is not simultaneous full-duplex speech. The native on-device companion remains available when the server is unavailable.
+Voice mode stays enabled until the player explicitly switches it off. Listening resumes between conversational turns, with half-duplex microphone suppression during reply and chime playback. Walking preserves the mode; tapping Ember interrupts a reply and resumes listening. Tapping the voice orb switches the mode off. This is not simultaneous full-duplex speech. The native on-device companion remains available when the server is unavailable.
 
 The authoritative snapshot includes current region, objective, named inventory, earned achievements, authored landmarks, exact route guidance and recent journal/events. Locked entities are excluded from model context. Only the game can move the player or change progress; generated dialogue has no action-execution authority.
 

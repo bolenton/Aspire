@@ -38,7 +38,7 @@ namespace Lantern.Unity.Presentation
         {
             if (narration != null && narrationNode != null)
             {
-                narrationNode.label = narration.text;
+                if(narrationNode.label!=narration.text) narrationNode.label = narration.text;
                 var scroll = narration.GetComponentInParent<ScrollRect>();
                 narrationNode.frame = Frame(scroll != null ? scroll.viewport : narration.rectTransform);
             }
@@ -50,9 +50,11 @@ namespace Lantern.Unity.Presentation
                     lastFocused = node;
                     Reveal(action);
                 }
-                node.label = action.Label.text;
-                node.state = action.Button.IsInteractable() ? AccessibilityState.None : AccessibilityState.Disabled;
-                node.frame = Frame((RectTransform)action.transform);
+                if(node.label!=action.Label.text)node.label = action.Label.text;
+                var state=action.Button.IsInteractable() ? AccessibilityState.None : AccessibilityState.Disabled;
+                if(node.state!=state)node.state=state;
+                var frame=Frame((RectTransform)action.transform);
+                if(node.frame!=frame)node.frame=frame;
             }
         }
         private Rect Frame(RectTransform rect)

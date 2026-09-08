@@ -1,3 +1,22 @@
+# Persistent voice mode — build 12
+
+- Build **0.1.0 (12)** passed Unity export, native Xcode compilation, strict signature verification, installation and installed-app version readback on Orange iPhone. It includes persistent mode, the animated orb, warmer microphone turn transitions, background audio/network processing and more responsive touch movement.
+- Build **11** passed a physical iPhone development check using actual native microphone PCM frames: walking preserved voice mode, stopping movement preserved the mode, authored Piper playback finished, listening resumed automatically, and explicitly disabling mode stopped further captured frames. Recorded words were not logged. The active-orb screenshot was copied from the phone and visually inspected.
+- That short build 11 main-thread sample measured **16.67 ms median** across the voice phases, **17.45 ms p95** during activation and **16.74 ms p95** during reply/resume. No voice-phase frame exceeded 50 ms. Initial mode activation to captured frames took 7.67 seconds; the warm continuation took 0.73 seconds. These are short development samples, not sustained GPU/thermal or subjective comfort results.
+- The build 11 movement distance included an earlier starting pose and must not be used as a speed measurement. Build 12 corrects the probe to sample position immediately before the drag.
+- Final build 12 voice-mode checks were interrupted by the app entering the background before capture. The iPad remains unavailable. Restore a normal launch after any development probe; these checks use a separate verification vault.
+
+Evidence: ignored `.artifacts/unity/iphone-voice-mode-build11.log`, `voice-listening-build11.png`, `xcodebuild-build12.log`, `iphone-install-build12.json`, `iphone-apps-build12.json` and `iphone-voice-mode-build12*.log`.
+
+## Current voice-mode acceptance
+
+1. Tap the microphone once. Confirm the blue orb remains visible and changes from preparation dots to listening bars only when capture is ready.
+2. Speak, pause and let Ember reply. Continue several turns without tapping again. Walk during listening and playback; movement must remain responsive and mode must remain on.
+3. Tap Ember during a reply. Speech should stop and listening resume while the orb remains active. “Stop” stops movement; “turn off voice mode” switches the mode off.
+4. Play chimes and visit dialogue/settings while mode is on. Capture pauses during sounds and resumes afterward. The orb remains available for explicitly ending mode.
+5. Tap the orb to switch off. It returns to the microphone icon; recording stops. Backgrounding temporarily suspends capture; returning resumes the enabled mode.
+6. Check recognition and echo with a real spoken conversation, both speaker and headphones, and evaluate the smaller touch dead zone with physical fingers. Automated PCM/frame checks do not establish those outcomes.
+
 # Orchard / family-server verification — 2026-09-07
 
 - Unity Editor: the full **21-activity** playthrough passed after correcting the Orchard entrance camera. It exercised navigation, visible world taps, Luma dialogue, moon-harp chimes, collecting the moon seed and restoring the nest. Screenshots were inspected from the actual renderer.
@@ -10,7 +29,7 @@
 
 Evidence: `.artifacts/unity/expansion-editor-build9-pass2.log`, `server-voice-probe-warmup.log`, `server-editor-build9.log`, `iphone-install-build9-retry.json`, `iphone-server-build9.log`, and before/after vault copies. Local artifact logs are excluded from Git. The initial Editor server probe accidentally chose a deterministic local-command phrase; the corrected open-ended phrase passed. This test correction did not reveal a speech transport failure.
 
-Remaining physical acceptance: unlock the phone, connect Tailscale, verify live microphone permission/capture, speech recognition, Piper playback, interruption, echo behavior and comfortable pacing. Install/check the iPad when reachable. Automated handler tests do not substitute for the child's actual touch/voice experience.
+Remaining physical acceptance: spoken recognition accuracy, room echo, interruption comfort and pacing. Native capture and automatic turn continuation have now passed on Orange; this does not establish recognition quality for a child. Install/check the iPad when reachable. Automated handler tests do not substitute for the child's actual touch/voice experience.
 
 ## Prior device milestones
 
@@ -52,10 +71,10 @@ Record device, OS, build, contrast/caption preferences, VoiceOver/headphone stat
 
 ## Automated expansion check
 
-Use `LANTERN_VERIFY_EXPANSION=1` and `LANTERN_START_ADVENTURE=1` in a development build. The check starts a separate verification save, walks all 13 activities, taps world-object bounds through the touch handlers, plays the chime UI, traverses the bridge both ways and returns to free exploration. It must end with `Lantern playthrough: PASS`. The player’s regular `vault.json` is not used for this run. Restore a normal launch afterward.
+Use `LANTERN_VERIFY_EXPANSION=1` and `LANTERN_START_ADVENTURE=1` in a development build. The check starts a separate verification save, walks all 21 activities, taps world-object bounds through the touch handlers, plays the chime UI, traverses the bridge both ways and returns to free exploration. It must end with `Lantern playthrough: PASS`. The player’s regular `vault.json` is not used for this run. Restore a normal launch afterward.
 
 
-## Conversation phase — build 8
+## Historical conversation phase — build 8 (superseded by persistent voice mode)
 
 1. Tap the microphone or Ember and allow microphone/speech permission if prompted. The microphone ring indicates activity; it does not add a text bar.
 2. Ask “Tell me a little story,” then a follow-up about that story. In Comfort settings → Ember's voice and conversation, verify the device reports whether on-device generation is ready.

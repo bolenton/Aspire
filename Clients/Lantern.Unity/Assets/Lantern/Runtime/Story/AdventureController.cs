@@ -64,9 +64,9 @@ namespace Lantern.Unity.Story
             hud.WorldTapped += TapWorld;
             voice.Recognized += Ask;
             voice.Partial += OnPartial;
-            voice.Failed += message => { conversationOpen=false; world.Player.Stop(); hud.Say(message); };
+            voice.Failed += message => { listenAgainAt=Time.unscaledTime+3; hud.Say(message); };
             voice.BusyChanged += sounds.Duck;
-            voice.BusyChanged += busy => { RefreshVoiceState(); if(!busy)listenAgainAt=Time.time+.4f; };
+            voice.BusyChanged += busy => { RefreshVoiceState(); if(!busy)listenAgainAt=Time.unscaledTime+.35f; };
             world.Player.Arrived += () => { Say("We're here. Take your time."); CheckReach(); };
             world.Player.RouteFailed += () => Say("I couldn't finish that path. We've stopped safely. Let's try another way.");
             stepStarted = Time.time;
@@ -78,24 +78,22 @@ namespace Lantern.Unity.Story
         }
         public void Stop()
         {
-            conversationOpen=false;
             world.Player.Stop(); voice.Stop(); instrument.Stop(); conversation?.Cancel();
             conversationRevision++; thinking = false; RefreshVoiceState();
         }
-        private void Talk()
+        public bool VoiceModeActive => conversationOpen;
+        private bool appPaused;
+        public void ToggleVoiceMode() => SetVoiceMode(!conversationOpen);
+        public void SetVoiceMode(bool active)
         {
-            var cancel = conversationOpen;
-            Stop(); hud.ShowAdventure(ActionLabel());
-            if (cancel) return;
-            conversationOpen=true;
-            hud.Say("I'm listening. Ask for help, a story, or a chat.");
-            voice.Listen();
+            conversationOpen=active;
+            voice.Stop();conversation.Cancel();thinking=false;conversationRevision++;
+            voice.SetMode(active);hud.SetVoiceMode(active);
+            listenAgainAt=Time.unscaledTime+.15f;
+            RefreshVoiceState();
         }
-        private void Move(Vector3 direction)
-        {
-            if (thinking || voice.IsListening) Stop();
-            world.Player.MoveWorld(direction);
-        }
+        private void Talk() => ToggleVoiceMode();
+        private void Move(Vector3 direction) => world.Player.MoveWorld(direction);
         private void RefreshVoiceState() => hud.SetVoiceState(voice.IsListening ? VoiceState.Listening : voice.Audible ? VoiceState.Speaking : thinking || voice.Processing ? VoiceState.Thinking : VoiceState.Idle);
         public void Say(string words) { PublishWorld(); lastWords = words; hud.Say(words); voice.Speak(words); }
         private void OnPartial(string words)
@@ -106,9 +104,10 @@ namespace Lantern.Unity.Story
         private async void Ask(string words) => await AskAsync(words);
         public async System.Threading.Tasks.Task AskAsync(string words)
         {
-            var continueTalking=conversationOpen;
-            Stop();
-            conversationOpen=continueTalking;
+            var normalized=CompanionCommands.Normalize(words);
+            if(CompanionCommands.Contains(normalized,"stop listening") || CompanionCommands.Contains(normalized,"turn off voice mode") || CompanionCommands.Contains(normalized,"end voice mode"))
+            {SetVoiceMode(false);Say("Voice mode is off. We can keep exploring.");return;}
+            voice.Stop();conversation.Cancel();conversationRevision++;
             PublishWorld();
             var request = ++conversationRevision;
             var observed = Observe();
@@ -168,13 +167,15 @@ namespace Lantern.Unity.Story
         private void Update()
         {
             if (world == null) return;
-            if(Time.time>=nextWorldUpdate){nextWorldUpdate=Time.time+2;PublishWorld();}
-            if(conversationOpen && hud.IsAdventure && !thinking && !voice.IsListening && !voice.IsSpeaking && Time.time>=listenAgainAt)
-            {listenAgainAt=Time.time+1;voice.Listen();}
+            if(Time.time>=nextWorldUpdate){nextWorldUpdate=Time.time+5;PublishWorld();}
+            if(instrument.IsPlaying && voice.IsListening){voice.Stop();listenAgainAt=Time.unscaledTime+.35f;}
+            if(conversationOpen && !appPaused && !instrument.IsPlaying && !thinking && !voice.IsListening && !voice.IsSpeaking && Time.unscaledTime>=listenAgainAt)
+            {listenAgainAt=Time.unscaledTime+1;voice.Listen();}
             RefreshVoiceState();
+            hud.SetVoiceLevel(voice.IsListening ? voice.InputLevel : voice.SpeechLevel);
             world.SetCompanionExpression(voice.IsListening,(thinking||voice.Processing)&&!voice.Audible,voice.SpeechLevel,voice.Audible);
             sounds.Pose(world.Player.transform.position, world.Player.Yaw);
-            if (!hud.IsAdventure || voice.IsListening) return;
+            if (!hud.IsAdventure) return;
             var keyboard = Keyboard.current;
             if (keyboard != null)
             {
@@ -182,7 +183,7 @@ namespace Lantern.Unity.Story
                 else
                 {
                     var input = new Vector2((keyboard.dKey.isPressed ? 1 : 0) - (keyboard.aKey.isPressed ? 1 : 0), (keyboard.wKey.isPressed ? 1 : 0) - (keyboard.sKey.isPressed ? 1 : 0));
-                    if (input.sqrMagnitude > 0) { if (thinking) Stop(); world.Player.Move(input); }
+                    if (input.sqrMagnitude > 0) { world.Player.Move(input); }
                     else if (keyboardMoving) world.Player.Stop();
                     keyboardMoving = input.sqrMagnitude > 0;
                 }
@@ -195,7 +196,10 @@ namespace Lantern.Unity.Story
             var closest = WorldInteraction.Resolve(position,Camera.main,world.Anchors);
             if (closest != null && closest == CurrentStep?.TargetEntityID) Interact();
             else if (closest == StoryPack.CompanionPlaceholder)
-            { Talk(); }
+            {
+                if(!conversationOpen)SetVoiceMode(true);
+                else {voice.Stop();conversation.Cancel();thinking=false;conversationRevision++;listenAgainAt=Time.unscaledTime+.15f;}
+            }
             else if(closest != null) ExploreLandmark(closest);
         }
         private void ExploreLandmark(string id)
@@ -292,7 +296,7 @@ namespace Lantern.Unity.Story
             hud.ShowChoices(celebration, new List<(string, Action)> { ("Keep exploring with Ember", () => hud.ShowAdventure(ActionLabel())), ("Hear that again", () => Say(celebration)), ("Rest here", Stop) });
             Say(celebration);
         }
-        private void OnApplicationPause(bool pause) { if (pause && world != null) { Stop(); save(); } }
+        private void OnApplicationPause(bool pause) { appPaused=pause;if(pause && world!=null){Stop();save();}else listenAgainAt=Time.unscaledTime+.6f; }
         private void OnDestroy() { if(instrument!=null && hud!=null) instrument.NotePlayed -= hud.HighlightNote; lifetime.Cancel(); conversation?.Dispose(); lifetime.Dispose(); }
     }
 }

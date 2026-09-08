@@ -29,6 +29,9 @@ namespace Lantern.Unity.Presentation
         private GameObject titleArtwork;
         private VoiceIndicator voiceIndicator;
         private VoiceState voiceState;
+        private bool voiceMode;
+        private GameObject voiceControl;
+        public bool IsPlayingSong=>melody!=null;
         public event Action Guide, Interact, Talk, Repeat, Stop, Settings;
         public event Action<float, float> Step;
         public bool IsAdventure { get; private set; }
@@ -48,6 +51,8 @@ namespace Lantern.Unity.Presentation
             accessibility = gameObject.AddComponent<ScreenReaderPresenter>();
             safeArea = ui.Rect("Safe area", transform, Vector2.zero, Vector2.one);
             ApplySafeArea();
+            IconButton(ControlGlyph.Kind.Microphone,"Voice mode",new Vector2(1,0),new Vector2(-76,86),() => Talk?.Invoke(),safeArea);
+            voiceControl.SetActive(false);
         }
         private void ApplySafeArea()
         {
@@ -65,6 +70,7 @@ namespace Lantern.Unity.Presentation
             melody = null;
             narrationPanel = null;
             titlePage = false;
+            if(voiceControl!=null){voiceControl.SetActive(voiceMode);voiceControl.transform.SetAsLastSibling();}
             if (titleArtwork != null) { Destroy(titleArtwork); titleArtwork = null; }
         }
         public void ShowTitle(IReadOnlyList<(string label, Action action)> options)
@@ -131,8 +137,8 @@ namespace Lantern.Unity.Presentation
             }
             else caption.color = Color.clear;
             IconButton(ControlGlyph.Kind.Pause,"Pause and options",new Vector2(1,1),new Vector2(-62,-58),ShowMore);
-            IconButton(ControlGlyph.Kind.Microphone,"Talk to Ember",new Vector2(1,0),new Vector2(-62,72),() => Talk?.Invoke());
-            IconButton(ControlGlyph.Kind.Compass,"Let Ember guide me",new Vector2(1,0),new Vector2(-62,180),() => Guide?.Invoke());
+            voiceControl.SetActive(true);voiceControl.transform.SetAsLastSibling();
+            IconButton(ControlGlyph.Kind.Compass,"Let Ember guide me",new Vector2(1,0),new Vector2(-76,228),() => Guide?.Invoke());
             RefreshAccessibility();
         }
 
@@ -149,9 +155,9 @@ namespace Lantern.Unity.Presentation
         public void HighlightNote(SolfegeNote note) => melody?.Highlight(note);
         public void SetSongProgress(int completed) => melody?.SetProgress(completed);
 
-        private void IconButton(ControlGlyph.Kind symbol,string label,Vector2 anchor,Vector2 offset,Action action)
+        private void IconButton(ControlGlyph.Kind symbol,string label,Vector2 anchor,Vector2 offset,Action action,Transform parent=null)
         {
-            var rect = ui.Rect(label,content,anchor,anchor);
+            var rect = ui.Rect(label,parent ?? content,anchor,anchor);
             rect.sizeDelta = new Vector2(88,88); rect.anchoredPosition = offset;
             var disc = rect.gameObject.AddComponent<ControlGlyph>();
             disc.Shape = ControlGlyph.Kind.Disc; disc.color = palette.Panel;
@@ -166,16 +172,27 @@ namespace Lantern.Unity.Presentation
             accessible.Label.color = Color.clear;
             if (symbol == ControlGlyph.Kind.Microphone)
             {
+                voiceControl=rect.gameObject;
                 voiceIndicator = rect.gameObject.AddComponent<VoiceIndicator>();
                 voiceIndicator.Initialize(ui,palette,accessible);
-                voiceIndicator.Set(voiceState);
+                voiceIndicator.Set(voiceState,voiceMode);
             }
         }
         public void SetVoiceState(VoiceState state)
         {
-            voiceState = state;
-            if (voiceIndicator != null) voiceIndicator.Set(state);
+            if(voiceState==state)return;
+            voiceState=state;
+            if(voiceIndicator!=null)voiceIndicator.Set(state,voiceMode);
         }
+        public void SetVoiceMode(bool active)
+        {
+            voiceMode=active;
+            voiceControl.SetActive(active || IsAdventure);
+            voiceControl.transform.SetAsLastSibling();
+            voiceIndicator.Set(voiceState,active);
+            if(caption!=null)RefreshAccessibility();
+        }
+        public void SetVoiceLevel(float level)=>voiceIndicator?.SetLevel(level);
         private void ShowMore()
         {
             Stop?.Invoke();

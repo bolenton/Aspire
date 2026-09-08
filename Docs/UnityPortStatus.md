@@ -1,12 +1,12 @@
 # Lantern Orchard and Ember server — 2026-09-07
 
-Build 10 includes a fourth chapter, Lantern Orchard: eight new activities, Luma the owl, a moon harp and new song, a moon seed, and a firefly nest restoration. The full journey now contains 21 ordered activities. Six new original GLB assets expand the walkable world westward. Luma acknowledges nearby players; Ember has listening/thinking poses and speech-driven jaw/ear animation. Existing saves continue into the new chapter.
+The current build includes a fourth chapter, Lantern Orchard: eight new activities, Luma the owl, a moon harp and new song, a moon seed, and a firefly nest restoration. The full journey now contains 21 ordered activities. Six new original GLB assets expand the walkable world westward. Luma acknowledges nearby players; Ember has listening/thinking poses and speech-driven jaw/ear animation. Existing saves continue into the new chapter.
 
 A separate Dockerized Go companion service now runs on Epyst-intel, sharing Conduit's existing Whisper and Piper containers and using the installed `gemma4:12b` model. Private HTTPS port 8443 leaves Conduit's existing route intact. The client supplies authoritative world/quest/journal context, uses streamed sentence audio and automatic conversational turn-taking, and retains its on-device fallback. See [conversation architecture](UnityConversation.md).
 
 Verification so far: 20 C# checks, Go race/integration checks, all four GitHub CI jobs, all 21 activities through actual Editor navigation/tap/chime handlers, successful Unity iOS export and signed native Xcode build. Live synthetic Whisper → contextual Ollama → Piper and follow-up memory passed against the deployed server. All seven changed/new character/Orchard GLBs match the packaged app bytes. Physical-device results are tracked in [UnityDeviceCheck](UnityDeviceCheck.md).
 
-Build 9 installed on Orange after retry and preserved the normal save byte-for-byte. The phone is locked, preventing runtime verification, and the iPad is currently unavailable. Build 10 is also installed on Orange, confirmed by device metadata, and carries the final verification and settings refinements. A real spoken microphone conversation remains a separate acceptance check. This is an expanded playable build, not a declaration of completed AAA production quality.
+Orange now runs the persistent voice-mode revision: tap once to enable, talk across repeated turns, tap again to disable. A large animated orb distinguishes capture, preparation and speech. Movement preserves the mode, smaller drags respond sooner, and native audio startup/decoding no longer run on the Unity frame thread. Physical native capture, automatic turn continuation and explicit-off shutdown passed on build 11. Final build and frame evidence is maintained in [UnityDeviceCheck](UnityDeviceCheck.md). The iPad is currently unavailable. Recognition accuracy in a real spoken family conversation remains a separate acceptance check. This is an expanded playable build, not a declaration of completed AAA production quality.
 
 ## Previous meadow milestones
 
@@ -51,10 +51,10 @@ Evidence is in ignored `.artifacts/unity`: `expansion-core-tests.log`, `expansio
 
 The intended player still needs to evaluate recognizability, comfort, pacing and gesture sensitivity. Physical VoiceOver, speech permissions, headphone direction and sustained frame-time/thermal tests remain separate acceptance checks. The short main-thread samples above do not establish sustained thermal performance. Use [the updated device walkthrough](UnityDeviceCheck.md).
 
-On-device conversational AI is now connected, with a saved built-in-only choice, authored fallback, familiar landmark voice aliases and a microphone activity ring. A self-hosted/remote provider configuration is not implemented. Other companions, regions, customization, and explicit legacy-save transfer remain broader port work. See [the conversation phase](UnityConversation.md). The new art is original prototype artwork; it should not be described as finished AAA production art.
+On-device conversational AI is now connected, with a saved built-in-only choice, authored fallback, familiar landmark voice aliases and a microphone activity ring. The later family-server phase described above adds the self-hosted provider. Other companions, regions, customization, and explicit legacy-save transfer remain broader port work. See [the conversation phase](UnityConversation.md). The new art is original prototype artwork; it should not be described as finished AAA production art.
 
 ## Build storage
 
 The external development drive disconnected during this revision. The external APFS image and its cache were left intact. The current ignored Library symlink uses `.artifacts/unity-library`; the Xcode export is `.artifacts/unity/iOS` and DerivedData is `.artifacts/unity/DerivedData`. The internal disk had about 24 GiB free during the native build. The client README records how to return to the external image when it is reconnected.
 
-Existing uncommitted Swift, USDZ and story work remains intact. The Unity client uses its own bundle and save container. No commit, push, merge or store upload has been performed.
+Existing uncommitted Swift, USDZ and story work remains intact. The Unity client uses its own bundle and save container. The Unity and companion-server work has been committed and pushed to `codex/unity-fox-hollow`; the server is deployed. No store upload has been performed.

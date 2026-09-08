@@ -46,7 +46,7 @@ namespace Lantern.Unity.Presentation
             var camera = Camera.main;
             forward = camera == null ? Vector3.forward : Vector3.ProjectOnPlane(camera.transform.forward,Vector3.up).normalized;
             right = Vector3.Cross(Vector3.up,forward);
-            radius = Mathf.Clamp(Screen.height*.12f,65,180);
+            radius = Mathf.Clamp(Screen.height*.09f,60,150);
             RectTransformUtility.ScreenPointToLocalPointInRectangle((RectTransform)transform,origin,data.pressEventCamera,out var local);
             ring.anchorMin = ring.anchorMax = Vector2.one*.5f;
             ring.anchoredPosition = local;
@@ -60,8 +60,8 @@ namespace Lantern.Unity.Presentation
             var delta = data.position-origin;
             maximumDistance = Mathf.Max(maximumDistance,delta.magnitude);
             var value = Vector2.ClampMagnitude(delta/radius,1);
-            // A broad dead zone makes resting fingers harmless.
-            var magnitude = Mathf.InverseLerp(.16f,1,value.magnitude);
+            // Keep resting fingers harmless while responding sooner to an intentional drag.
+            var magnitude = Mathf.Pow(Mathf.InverseLerp(.09f,1,value.magnitude),.75f);
             Moved?.Invoke((right*value.x+forward*value.y).normalized*magnitude);
             thumb.anchoredPosition = value*57;
         }
