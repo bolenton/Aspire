@@ -8,7 +8,7 @@ Copy `.env.example` to `.env`, set a random pairing code and an installed Ollama
 
 For Conduit's existing rootless Docker installation use `docker compose -f compose.yml -f compose.conduit.yml up -d --build`. This joins the existing `conduit-speech_default` network, using Whisper and Piper by service name. Point `LANTERN_OLLAMA_URL` at the host's existing tailnet Ollama listener. Do not change Conduit's routes or inference configuration. Tailscale Serve can publish Lantern on an unused HTTPS port, leaving Conduit's port 443 untouched.
 
-Local build input `Clients/Lantern.Unity/Assets/StreamingAssets/CompanionServer.json` contains `url` and `pairingCode`. It is ignored by Git. Pairing is limited to four devices during the first 30 minutes after server startup. Rotate the bootstrap code before a new pairing window. Device bearer tokens are stored hashed on the server and in iOS Keychain on the device. The paired token survives reinstall; ordinary reconnect does not need the bootstrap code.
+Local build input `Clients/Lantern.Unity/Assets/StreamingAssets/CompanionServer.json` contains `url` and `pairingCode`. It is ignored by Git. Pairing is limited to four devices during the first seven days after server startup. Rotate the bootstrap code before a new pairing window. Device bearer tokens are stored hashed on the server and in iOS Keychain on the device. The paired token survives reinstall; ordinary reconnect does not need the bootstrap code.
 
 ## Conversation contract
 

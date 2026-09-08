@@ -1,12 +1,12 @@
 # Lantern Orchard and Ember server — 2026-09-07
 
-Build 9 adds a fourth chapter, Lantern Orchard: eight new activities, Luma the owl, a moon harp and new song, a moon seed, and a firefly nest restoration. The full journey now contains 21 ordered activities. Six new original GLB assets expand the walkable world westward. Luma acknowledges nearby players; Ember has listening/thinking poses and speech-driven jaw/ear animation. Existing saves continue into the new chapter.
+Build 10 includes a fourth chapter, Lantern Orchard: eight new activities, Luma the owl, a moon harp and new song, a moon seed, and a firefly nest restoration. The full journey now contains 21 ordered activities. Six new original GLB assets expand the walkable world westward. Luma acknowledges nearby players; Ember has listening/thinking poses and speech-driven jaw/ear animation. Existing saves continue into the new chapter.
 
 A separate Dockerized Go companion service now runs on Epyst-intel, sharing Conduit's existing Whisper and Piper containers and using the installed `gemma4:12b` model. Private HTTPS port 8443 leaves Conduit's existing route intact. The client supplies authoritative world/quest/journal context, uses streamed sentence audio and automatic conversational turn-taking, and retains its on-device fallback. See [conversation architecture](UnityConversation.md).
 
 Verification so far: 20 C# checks, Go race/integration checks, all four GitHub CI jobs, all 21 activities through actual Editor navigation/tap/chime handlers, successful Unity iOS export and signed native Xcode build. Live synthetic Whisper → contextual Ollama → Piper and follow-up memory passed against the deployed server. All seven changed/new character/Orchard GLBs match the packaged app bytes. Physical-device results are tracked in [UnityDeviceCheck](UnityDeviceCheck.md).
 
-Build 9 installed on Orange after retry and preserved the normal save byte-for-byte. The phone is locked, preventing runtime verification, and the iPad is currently unavailable. Build 10 carries the final verification and settings refinements. A real spoken microphone conversation remains a separate acceptance check. This is an expanded playable build, not a declaration of completed AAA production quality.
+Build 9 installed on Orange after retry and preserved the normal save byte-for-byte. The phone is locked, preventing runtime verification, and the iPad is currently unavailable. Build 10 is also installed on Orange, confirmed by device metadata, and carries the final verification and settings refinements. A real spoken microphone conversation remains a separate acceptance check. This is an expanded playable build, not a declaration of completed AAA production quality.
 
 ## Previous meadow milestones
 

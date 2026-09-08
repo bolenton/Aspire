@@ -13,6 +13,9 @@ import (
 	"github.com/coder/websocket"
 )
 
+// A family setup window accommodates devices that are asleep during deployment.
+const pairingWindow = 7 * 24 * time.Hour
+
 type Server struct {
 	config      Config
 	store       *Store
@@ -25,7 +28,7 @@ type Server struct {
 }
 
 func NewServer(c Config, s *Store, e Engines) *Server {
-	return &Server{config: c, store: s, engines: e, pairExpires: time.Now().Add(30 * time.Minute), connections: make(map[string]context.CancelFunc), slots: make(chan struct{}, 2)}
+	return &Server{config: c, store: s, engines: e, pairExpires: time.Now().Add(pairingWindow), connections: make(map[string]context.CancelFunc), slots: make(chan struct{}, 2)}
 }
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
