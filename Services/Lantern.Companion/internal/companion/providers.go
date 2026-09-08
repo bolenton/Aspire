@@ -161,8 +161,8 @@ func (p *LocalEngines) Health(ctx context.Context) error {
 
 // Prepare the model once at service startup, before a child's first spoken turn.
 func (p *LocalEngines) Warm(ctx context.Context) error {
-	raw, _ := json.Marshal(map[string]any{"model": p.Config.Model, "keep_alive": "30m"})
-	res, err := p.request(ctx, strings.TrimRight(p.Config.OllamaURL, "/")+"/api/generate", "application/json", bytes.NewReader(raw))
+	raw, _ := json.Marshal(map[string]any{"model": p.Config.Model, "keep_alive": "30m", "stream": false, "think": false, "messages": []ChatMessage{{Role: "system", Content: persona}, {Role: "user", Content: "Say hello in four words."}}, "options": map[string]any{"num_ctx": 8192, "num_predict": 12, "temperature": 0.65}})
+	res, err := p.request(ctx, strings.TrimRight(p.Config.OllamaURL, "/")+"/api/chat", "application/json", bytes.NewReader(raw))
 	if err != nil {
 		return err
 	}
